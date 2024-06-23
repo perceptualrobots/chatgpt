@@ -4,27 +4,73 @@
 
 
 
-import openai 
+from openai import OpenAI
 import os  
-# Set OpenAI API key 
-# openai.api_key = \'YOUR_OPENAI_API_KEY\'  
+import json
+
+
+client = OpenAI()
 # # Directory paths 
-# system_roles_dir = \'system_roles\' 
-# user_roles_dir = \'user_roles\' 
-text_dir = \'text\' 
-responses_dir = \'responses\'  
+dir = 'G:\My Drive\PR\Consciousness\chatgpt\paper'
+system_roles_dir = dir + os.sep + 'system_roles' 
+user_roles_dir = dir + os.sep + 'user_roles' 
+text_dir = dir + os.sep + 'text' 
+responses_dir = dir + os.sep + 'responses'  
 # Create responses directory if it does not exist 
 if not os.path.exists(responses_dir):     
-    os.makedirs(responses_dir)  
-    def read_file(file_path):     
-        with open(file_path, \'r\') as file:         
-                  return file.read()  
+  os.makedirs(responses_dir)  
+if not os.path.exists(system_roles_dir):     
+  os.makedirs(system_roles_dir)  
+if not os.path.exists(user_roles_dir):     
+  os.makedirs(user_roles_dir)  
+if not os.path.exists(text_dir):     
+  os.makedirs(text_dir)  
+
+def read_file(file_path):     
+  	with open(file_path, 'r') as file:
+		  return file.read()  
                   
-                  def write_file(file_path, content):     
-                    with open(file_path, \'w\') as file:         
-                              file.write(content)  
+def write_file(file_path, content):     
+	with open(file_path, 'w') as file:         
+		file.write(content)  
+
+
+def is_json(myjson):
+  print(myjson)
+  try:
+    json.loads(myjson)
+  except ValueError as e:
+    return False
+  return True
+
                               
-                              def make_chatgpt_request(system_content, user_content, text_content):     prompt = system_content + user_content + text_content     response = openai.Completion.create(         engine="davinci",         prompt=prompt,         max_tokens=150     )     return response.choices[0].text  # Read system roles content system_roles = os.listdir(system_roles_dir) user_roles = os.listdir(user_roles_dir) text_files = os.listdir(text_dir)  for system_role_file in system_roles:     system_content = read_file(os.path.join(system_roles_dir, system_role_file))     for user_role_file in user_roles:         user_content = read_file(os.path.join(user_roles_dir, user_role_file))         for text_file in text_files:     
-        text_content = read_file(os.path.join(text_dir, text_file))             response_content = make_chatgpt_request(system_content, user_content, text_content)             response_file_name = os.path.splitext(text_file)[0] + \'_response.txt\'             write_file(os.path.join(responses_dir, response_file_name), response_content) ```  Make sure to replace `\'YOUR_OPENAI_API_KEY\'` with your actual OpenAI API key. This program will iterate through system role contents, user role contents, and text blocks, make a request to the OpenAI ChatGPT API for each combination, and save the response content to files in the "responses" directory.', role='assistant', function_call=None, tool_calls=None)
+def make_chatgpt_request(system_content, user_content, text_content):     
+
+	response = client.chat.completions.create(
+		 model="gpt-4o",
+		 messages=[ 
+			 {"role": "system", "content": system_content},
+			 {"role": "user", "content": user_content +  text_content}
+			 ])     	
+	
+	print(response.choices[0].message.content)
+	return response.choices[0].message.content  
+
+# Read system roles content 
+
+system_roles = os.listdir(system_roles_dir) 
+user_roles = os.listdir(user_roles_dir) 
+text_files = os.listdir(text_dir)  
+for system_role_file in system_roles:     
+	system_content = read_file(os.path.join(system_roles_dir, system_role_file))     
+	for user_role_file in user_roles:         
+		user_content = read_file(os.path.join(user_roles_dir, user_role_file))         
+		for text_file in text_files:     
+			text_content = read_file(os.path.join(text_dir, text_file))             
+			response_content = make_chatgpt_request(system_content, user_content, text_content)         
+			print(response_content)    
+			response_file_name = os.path.splitext(text_file)[0] + '_response.txt'             
+			write_file(os.path.join(responses_dir, response_file_name), response_content) 
+			
 
 
