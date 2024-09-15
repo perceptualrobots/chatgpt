@@ -9,22 +9,7 @@ import os
 import json
 
 
-client = OpenAI()
-# # Directory paths 
-dir = 'G:\My Drive\PR\Consciousness\chatgpt\paper'
-system_roles_dir = dir + os.sep + 'system_roles' 
-user_roles_dir = dir + os.sep + 'user_roles' 
-text_dir = dir + os.sep + 'text' 
-responses_dir = dir + os.sep + 'responses'  
-# Create responses directory if it does not exist 
-if not os.path.exists(responses_dir):     
-  os.makedirs(responses_dir)  
-if not os.path.exists(system_roles_dir):     
-  os.makedirs(system_roles_dir)  
-if not os.path.exists(user_roles_dir):     
-  os.makedirs(user_roles_dir)  
-if not os.path.exists(text_dir):     
-  os.makedirs(text_dir)  
+
 
 def read_file(file_path):     
   	with open(file_path, 'r') as file:
@@ -45,6 +30,7 @@ def is_json(myjson):
 
                               
 def make_chatgpt_request(system_content, user_content, text_content):     
+	return text_content
 
 	response = client.chat.completions.create(
 		 model="gpt-4o",
@@ -56,21 +42,50 @@ def make_chatgpt_request(system_content, user_content, text_content):
 	print(response.choices[0].message.content)
 	return response.choices[0].message.content  
 
-# Read system roles content 
 
-system_roles = os.listdir(system_roles_dir) 
-user_roles = os.listdir(user_roles_dir) 
-text_files = os.listdir(text_dir)  
-for system_role_file in system_roles:     
-	system_content = read_file(os.path.join(system_roles_dir, system_role_file))     
-	for user_role_file in user_roles:         
-		user_content = read_file(os.path.join(user_roles_dir, user_role_file))         
-		for text_file in text_files:     
-			text_content = read_file(os.path.join(text_dir, text_file))             
-			response_content = make_chatgpt_request(system_content, user_content, text_content)         
-			print(response_content)    
-			response_file_name = os.path.splitext(text_file)[0] + '_response.txt'             
-			write_file(os.path.join(responses_dir, response_file_name), response_content) 
-			
+if __name__ == '__main__':
 
+	client = OpenAI()
+	# # Directory paths 
+	dir = 'G:\My Drive\PR\Consciousness\chatgpt\paper'
+	system_roles_dir = dir + os.sep + 'system_roles' 
+	user_roles_dir = dir + os.sep + 'user_roles' 
+	text_dir = dir + os.sep + 'text' 
+	responses_dir = dir + os.sep + 'responses'  
+	# Create responses directory if it does not exist 
+	if not os.path.exists(responses_dir):     
+		os.makedirs(responses_dir)  
+	if not os.path.exists(system_roles_dir):     
+		os.makedirs(system_roles_dir)  
+	if not os.path.exists(user_roles_dir):     
+		os.makedirs(user_roles_dir)  
+	if not os.path.exists(text_dir):     
+		os.makedirs(text_dir)  
+	# Read system roles content 
+
+	system_roles = os.listdir(system_roles_dir) 
+	user_roles = os.listdir(user_roles_dir) 
+	text_files = os.listdir(text_dir)  
+	total_word_count = 0
+	for system_role_file in system_roles:     
+		system_prefix = os.path.splitext(system_role_file)[0] 
+		system_content = read_file(os.path.join(system_roles_dir, system_role_file))     
+		for user_role_file in user_roles:         
+			user_prefix = os.path.splitext(user_role_file)[0] 
+			response_subdir = os.path.join(responses_dir, system_prefix, user_prefix)
+			if not os.path.exists(response_subdir):
+				os.makedirs(response_subdir)
+			user_content = read_file(os.path.join(user_roles_dir, user_role_file))         
+			for text_file in text_files:     
+				text_content = read_file(os.path.join(text_dir, text_file))         
+				word_count = len(text_content.split())
+				total_word_count += word_count
+				print(f"Number of words in text_content: {word_count}")
+				response_content = make_chatgpt_request(system_content, user_content, text_content)         
+				# print(response_content)    
+
+				response_file_name = os.path.splitext(text_file)[0] + '_response.txt'             
+				write_file(os.path.join(response_subdir, response_file_name), response_content) 
+				
+	print(f"Total number of words in text_content: {total_word_count}")
 
