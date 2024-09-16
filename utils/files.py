@@ -1,5 +1,6 @@
 import os
 import re
+from datetime import datetime
 
 class LaTeXSplitter:
     def __init__(self, input_file, output_dir):
@@ -45,5 +46,29 @@ class LaTeXSplitter:
         self.write_sections()
 
 # Usage example
-splitter = LaTeXSplitter('C:\\tmp\\Consciousness 202405\\body-202405.tex', 'C:\\tmp\\Consciousness 202405\\sections')
-splitter.process()
+# splitter = LaTeXSplitter('G:\\My Drive\\PR\\Consciousness\\chatgpt\\paper\\body-202405.tex', 'G:\\My Drive\\PR\\Consciousness\\chatgpt\\paper\\text')
+# splitter.process()
+
+class LaTeXConcatenator:
+    def __init__(self, input_dir, output_file):
+        self.input_dir = input_dir
+        self.output_file = output_file
+
+    def concatenate_files(self):
+        with open(self.output_file, 'w') as outfile:
+            for filename in sorted(os.listdir(self.input_dir)):
+                if filename.endswith('.txt'):
+                    file_path = os.path.join(self.input_dir, filename)
+                    with open(file_path, 'r') as infile:
+                        outfile.write(infile.read())
+                        outfile.write('\n')
+
+# Usage example
+
+input_dir = 'G:\\My Drive\\PR\\Consciousness\\chatgpt\\paper\\responses\\generic\\rewrite'
+last_two_folders = os.path.basename(os.path.dirname(input_dir)) + '-' + os.path.basename(input_dir)
+date_str = datetime.now().strftime('%Y%m%d')
+output_file = f"G:\\My Drive\\PR\\Consciousness\\chatgpt\\paper\\body-{last_two_folders}-{date_str}.tex"
+
+concatenator = LaTeXConcatenator(input_dir, output_file)
+concatenator.concatenate_files()
