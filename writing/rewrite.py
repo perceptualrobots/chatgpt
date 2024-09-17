@@ -60,7 +60,7 @@ if __name__ == '__main__':
 	client = OpenAI()
 	# # Directory paths 
 	dir = 'G:\My Drive\PR\Consciousness\chatgpt\paper'
-	reduction = 12
+	reduction = 0
 	system_roles_dir = dir + os.sep + 'system_roles' 
 	user_roles_dir = dir + os.sep + 'user_roles' 
 	text_dir = dir + os.sep + 'text' 
