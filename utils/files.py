@@ -34,7 +34,7 @@ class LaTeXSplitter:
         for idx, (original_name, cleaned_name, content) in enumerate(self.sections, 1):
             # Replace spaces with underscores in section names for filenames
             safe_name = cleaned_name.replace(' ', '_')
-            output_filename = f"{idx}_{safe_name}.txt"
+            output_filename = f"{idx:02}_{safe_name}.txt"
             output_path = os.path.join(self.output_dir, output_filename)
             with open(output_path, 'w') as file:
                 file.write(f"\\section{{{original_name}}}\n")
@@ -62,14 +62,14 @@ class LaTeXConcatenator:
 
 
 if __name__ == '__main__':
-    test = 'split'   
+    test = 'splitno'   
     # Usage example
 
     if test == 'split':
         splitter = LaTeXSplitter('G:\\My Drive\\PR\\Consciousness\\chatgpt\\paper\\body-202405.tex', 'G:\\My Drive\\PR\\Consciousness\\chatgpt\\paper\\text')
         splitter.process()
     else:
-        input_dir = 'G:\\My Drive\\PR\\Consciousness\\chatgpt\\paper\\responses\\generic\\rewrite'
+        input_dir = 'G:\\My Drive\\PR\\Consciousness\\chatgpt\\paper\\responses\\chalmers\\rewrite'
         last_two_folders = os.path.basename(os.path.dirname(input_dir)) + '-' + os.path.basename(input_dir)
         date_str = datetime.now().strftime('%Y%m%d')
         output_file = f"G:\\My Drive\\PR\\Consciousness\\chatgpt\\paper\\body-{last_two_folders}-{date_str}.tex"

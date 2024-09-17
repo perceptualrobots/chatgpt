@@ -103,6 +103,7 @@ if __name__ == '__main__':
 				response_content = make_chatgpt_request(system_content, user_content, text_content)         
 				# print(response_content)    
 				response_word_count = len(response_content.split())
+				print(response_word_count)
 				response_total_word_count += response_word_count
 				response_file_name = os.path.splitext(text_file)[0] + '_response.txt'             
 				write_file(os.path.join(response_subdir, response_file_name), response_content) 
