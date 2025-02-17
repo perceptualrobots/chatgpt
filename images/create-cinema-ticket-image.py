@@ -4,24 +4,36 @@ from openai import OpenAI
 client = OpenAI()
 
 # Set the prompt
-prompt = "Generate an image that looks like a cinema ticket for the movie Gandhi. The movie is showing as part of the Perranuthnoe Film Festival. The recipient of the ticket is Ania Ruszkowski. The date of the ticket should be 25 of December 2024."
+prompt = (
+    'Generate an image which is a cinema ticket.'
+    'Add the name of the movie as "Gandhi". '
+    'Add a banner saying "Perranuthnoe Film Festival". '
+    'Add the recipient of the ticket as "Ania Ruszkowski". '
+    'Add the date of the ticket as "25 of December 2024". '
+    'Add a note saying "VIP Pass".'
+)
+
+print(prompt)
 
 # Call the OpenAI image generation API
-response = client.images.create_variation(
+response = client.images.generate(
     prompt=prompt,
+    model="dall-e-3",
+    # model="image generator",
     n=1,
     size="1024x1024"
 )
 
 # Get the URL of the generated image
-image_url = response['data'][0]['url']
+for image_data in response.data:
+    image_url = image_data.url
 
-# Print the image URL
-print(image_url)
+    # Print the image URL
+    print(image_url)
 
-# Save the image URL to a file
-with open("cinema_ticket_image.txt", "w") as file:
-    file.write(image_url)
+    # Open the image in the browser
+    import webbrowser
+    webbrowser.open(image_url)
 
 
 
