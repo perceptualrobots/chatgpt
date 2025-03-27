@@ -107,7 +107,23 @@ if __name__ == "__main__":
         # "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/1626.full.pdf",
         # "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/Chengzhen Liu 2016.pdf",
         # "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/martin2021.pdf"
-        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/PIIS0896627322006699.pdf"
+        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/PIIS0092867419306403.pdf",
+        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/PIIS0896627322006699.pdf",
+        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/elife-04811-v1.pdf",
+        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/NIPS-2011-a-reinforcement-learning-theory-for-homeostatic-regulation-Paper.pdf",
+        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/ijcnn2023-all.pdf",
+        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/1-s2.0-S0896627322011254-main.pdf",
+        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/2f1e2daa976863dcb94c903a5455e5cf.pdf",
+        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/s41467-020-17828-8.pdf",
+        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/2024.12.06.627286v2.full.pdf",
+        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/nihms99493.pdf",
+        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/Roseboom_Arnold_2011_Reaching_Invisible.pdf",
+        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/PIIS0960982213001401.pdf",
+        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/whyte2020.pdf",
+        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/2410.06633v1.pdf",
+        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/1-s2.0-S2665945X22000092-main.pdf"
+        # "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/",
+
     ]
     output_doc = "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/summaries.docx"
     process_articles(article_paths, output_doc)
