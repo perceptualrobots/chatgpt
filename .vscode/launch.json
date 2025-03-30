@@ -1,0 +1,24 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "article chat",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            // "args": ["-f", "G:/My Drive/newideas/PIIS0960982213001401.pdf", "-u", "What is the main thesis of this article?", "-s", "You are an expert academic specializing in summarizing research papers."]
+            "args": ["-f", "G:/My Drive/newideas/PIIS0960982213001401.pdf", "-u", "how many individual trials were there?"]
+        },
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        }
+    ]
+}

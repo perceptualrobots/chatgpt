@@ -1,3 +1,4 @@
 .env
 __pycache__/test.cpython-39.pyc
 images/robots/*.png
+research/__pycache__/*.pyc

@@ -2,8 +2,10 @@ from openai import OpenAI
 import docx
 import os
 from PyPDF2 import PdfReader
+from tiktoken import encoding_for_model
+import json
 
-class ArticleSummarizer:
+class ArticleQuery:
     def __init__(self):
         """
         Initializes the ArticleSummarizer with the OpenAI API key.
@@ -35,7 +37,7 @@ class ArticleSummarizer:
         else:
             raise ValueError(f"Unsupported file format: {file_extension}")
 
-    def summarize_in_chunks(self, content, chunk_size=3000):
+    def summarize_in_chunks(self, content, chunk_size=90000):
         """
         Summarizes content in chunks if it exceeds the token limit.
 
@@ -46,11 +48,12 @@ class ArticleSummarizer:
         Returns:
             str: Combined summary of all chunks.
         """
+        print(f"Content size: {len(content)} characters")
         chunks = [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
         summaries = []
 
         for idx, chunk in enumerate(chunks):
-            print(f"Processing chunk {idx + 1}/{len(chunks)}...")
+            print(f"Processing chunk {idx + 1}/{len(chunks)}... (size: {len(chunk)} characters)")
             system_role = "You are an expert academic specializing in summarizing research papers."
             user_prompt = (
                 f"Summarize this academic article chunk by identifying its main thesis, key arguments, "
@@ -62,7 +65,7 @@ class ArticleSummarizer:
             )
 
             response = self.client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": system_role},
                     {"role": "user", "content": user_prompt}
@@ -83,7 +86,25 @@ class ArticleSummarizer:
             str: A string containing the summary and BibTeX citation.
         """
         article_content = self.read_file_content(file_path)
+
+        # token_count = self.get_token_count(article_content)
+        # print(f"Token count: {token_count}")
         return self.summarize_in_chunks(article_content)
+
+    def get_token_count(text, model="gpt-4o"):
+        """
+        Calculates the number of tokens in a given text for a specific model.
+
+        Args:
+            text (str): The text to tokenize.
+            model (str): The model to use for tokenization.
+
+        Returns:
+            int: The number of tokens in the text.
+        """
+        encoding = encoding_for_model(model)
+        return len(encoding.encode(text))
+
 
     def save_to_word(self, results, output_file):
         """
@@ -120,14 +141,36 @@ class ArticleSummarizer:
 
         self.save_to_word(results, output_file)
 
+    def chat_with_gpt(self, file_path = "test", user_input = "", system_message = "You are a helpful assistant."):
+        history_file = os.path.splitext(file_path)[0] + ".json"
+        if os.path.exists(history_file):
+            with open(history_file, 'r', encoding='utf-8') as f:
+               self.conversation_history = json.load(f)
+            self.conversation_history.append({"role": "user", "content": user_input})
+        else:
+            # Append user input to conversation history
+            self.conversation_history = [
+            {"role": "system", "content": system_message}
+            ]
+            document = self.read_file_content(file_path)
+            self.conversation_history.append( {"role": "user", "content": f"Here is a document: {document}\n\nQuestion: {user_input}"})
 
-if __name__ == "__main__":
-    # Example usage
-    summarizer = ArticleSummarizer()
+        # Call the OpenAI API
+        response = self.client.chat.completions.create(
+            model="gpt-4o",  # Choose the model
+            messages=self.conversation_history
+        )
 
-    article_paths = [
-        "C:/Users/ruper/Dropbox/documents/PR-PCT/papers/consciousness/newideas/2024.12.06.627286v2.full.pdf"
-    ]
-    output_doc = "/tmp/summaries.docx"
-    summarizer.process_articles(article_paths, output_doc)
-    print(f"Summaries saved to {output_doc}")
+        # Extract assistant response
+        assistant_reply = response.choices[0].message.content
+        
+        # Append assistant response to conversation history
+        self.conversation_history.append({"role": "assistant", "content": assistant_reply})
+
+         # Save updated history to file
+        with open(history_file, "w") as history_file:
+            json.dump(self.conversation_history, history_file, indent=4)
+
+        return assistant_reply
+    
+
