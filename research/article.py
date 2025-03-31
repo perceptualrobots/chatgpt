@@ -2,7 +2,7 @@ from openai import OpenAI
 import docx
 import os
 from PyPDF2 import PdfReader
-from tiktoken import encoding_for_model
+from tiktoken import encoding_for_model, get_encoding
 import json
 
 class ArticleQuery:
@@ -12,6 +12,9 @@ class ArticleQuery:
 
         """
         self.client = OpenAI()
+        self.model="gpt-4o-mini"
+        if self.model == "gpt-4o-mini":
+            self.model_limit=200000
 
     def read_file_content(self, file_path):
         """
@@ -36,6 +39,9 @@ class ArticleQuery:
             return " ".join(paragraph.text for paragraph in doc.paragraphs)
         else:
             raise ValueError(f"Unsupported file format: {file_extension}")
+
+
+
 
     def summarize_in_chunks(self, content, chunk_size=90000):
         """
@@ -65,7 +71,7 @@ class ArticleQuery:
             )
 
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model=self.model,
                 messages=[
                     {"role": "system", "content": system_role},
                     {"role": "user", "content": user_prompt}
@@ -91,7 +97,7 @@ class ArticleQuery:
         # print(f"Token count: {token_count}")
         return self.summarize_in_chunks(article_content)
 
-    def get_token_count(text, model="gpt-4o"):
+    def get_token_count(self, text):
         """
         Calculates the number of tokens in a given text for a specific model.
 
@@ -102,7 +108,8 @@ class ArticleQuery:
         Returns:
             int: The number of tokens in the text.
         """
-        encoding = encoding_for_model(model)
+        encoding = encoding_for_model(self.model)
+        # encoding = get_encoding(model)
         return len(encoding.encode(text))
 
 
@@ -141,23 +148,34 @@ class ArticleQuery:
 
         self.save_to_word(results, output_file)
 
-    def chat_with_gpt(self, file_path = "test", user_input = "", system_message = "You are a helpful assistant."):
-        history_file = os.path.splitext(file_path)[0] + ".json"
-        if os.path.exists(history_file):
-            with open(history_file, 'r', encoding='utf-8') as f:
-               self.conversation_history = json.load(f)
-            self.conversation_history.append({"role": "user", "content": user_input})
-        else:
-            # Append user input to conversation history
-            self.conversation_history = [
-            {"role": "system", "content": system_message}
-            ]
-            document = self.read_file_content(file_path)
-            self.conversation_history.append( {"role": "user", "content": f"Here is a document: {document}\n\nQuestion: {user_input}"})
 
-        # Call the OpenAI API
+    def submit_in_chunks(self, content=None):
+        """
+        Summarizes content in chunks if it exceeds the token limit.
+
+        Args:
+            content (str): The content to summarize.
+            chunk_size (int): Approximate size of each chunk in tokens.
+
+        Returns:
+            str: Combined summary of all chunks.
+        """
+        tokens = self.get_token_count(content)
+        characters = len(content)
+        print(f"Content size: {characters} characters, {tokens} tokens")
+        chunk_size = min(1000000, int(self.model_limit * characters / tokens))
+        chunks = [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
+
+        for idx, chunk in enumerate(chunks):
+            print(f"Processing chunk {idx + 1}/{len(chunks)}... (size: {len(chunk)} characters)")
+            user_prompt = f"Here is part {idx+1} of {len(chunks)} parts of a document: {chunk}"
+            self.conversation_history.append( {"role": "user", "content": user_prompt})
+            self.send_history_request()
+
+    def send_history_request(self):
+         # Call the OpenAI API
         response = self.client.chat.completions.create(
-            model="gpt-4o",  # Choose the model
+            model=self.model,  # Choose the model
             messages=self.conversation_history
         )
 
@@ -167,10 +185,29 @@ class ArticleQuery:
         # Append assistant response to conversation history
         self.conversation_history.append({"role": "assistant", "content": assistant_reply})
 
+
+    def chat_with_gpt(self, file_path = "test", user_input = "", system_message = None):
+        history_file = os.path.splitext(file_path)[0] + ".json"
+        if os.path.exists(history_file):
+            with open(history_file, 'r', encoding='utf-8') as f:
+               self.conversation_history = json.load(f)
+            if system_message:
+                self.conversation_history.append({"role": "system", "content": system_message})
+            self.conversation_history.append({"role": "user", "content": user_input})
+            self.send_history_request()
+        else:
+            # Append user input to conversation history
+            self.conversation_history = [
+            {"role": "system", "content": system_message}
+            ]
+            document = self.read_file_content(file_path)
+            self.submit_in_chunks(document)
+            # tokens = self.get_token_count(document)
+            # print(f"Token count: {tokens}")
+
          # Save updated history to file
         with open(history_file, "w") as history_file:
             json.dump(self.conversation_history, history_file, indent=4)
 
-        return assistant_reply
     
 
