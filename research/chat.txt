@@ -6,6 +6,7 @@ python -m research.chat_with_article -f "G:/My Drive/newideas/1626.full.pdf" -u 
 python -m research.chat_with_article -f "G:/My Drive/newideas/1626.full.pdf" -u "How does the author define perception?." -s "You are an expert in analyzing, reviewing, and summarizing academic documents, specializing in philosophy and psychology with a focus on human behavior and the nature of consciousness. Your goal is to provide clear, insightful, and concise summaries that capture the main thesis, key arguments, counterarguments, and philosophical concepts presented in the text. You should identify the author’s reasoning, theoretical frameworks, and the implications of the arguments within the broader academic discourse. Use precise language and maintain a formal, academic tone while delivering comprehensive and nuanced interpretations of complex ideas."
 python -m research.chat_with_article -f "G:/My Drive/newideas/1626.full.pdf" -u "In which sections does the author discuss the defininitions of perception?" 
 python -m research.chat_with_article -f "G:/My Drive/newideas/1626.full.pdf" -u "What does the author say about Blindsight?" 
+python -m research.chat_with_article -f "G:/My Drive/newideas/1626.full.pdf" -u "What is the correct definition of perception?" 
 
 
 python -m research.chat_with_article -f "G:/My Drive/PR/Consciousness/submission/NewIdeas/2025/Consciousness_CoQ.pdf" -u "Here is a document for review." -s "Do not respond with an analysis until specifically questioned to do so."
