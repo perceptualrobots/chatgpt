@@ -18,6 +18,9 @@ python report_generator.py --force
 
 # Generate PDF only from existing output files
 python report_generator.py --pdf-only
+
+# Concatenate input files only (no AI generation or PDF)
+python report_generator.py --concatenate-only
 ```
 
 ### Custom Directories
@@ -72,6 +75,9 @@ python report_generator.py --pdf-only
 
 # If you want completely fresh content (clears change tracking)
 python report_generator.py --force
+
+# Get an overview of all your notes in one file
+python report_generator.py --concatenate-only
 
 # Generate from a backup output directory
 python report_generator.py --pdf-only --output-dir "backup_output"

@@ -264,6 +264,53 @@ class TechnicalReportGenerator:
             'body': body_style
         }
     
+    def concatenate_input_files(self, output_filename: str = "all_sections_notes.txt") -> bool:
+        """Concatenate all input files in the correct order into a single file."""
+        print("Concatenating input files...")
+        
+        output_path = self.input_dir / output_filename
+        
+        try:
+            with open(output_path, 'w', encoding='utf-8') as output_file:
+                # Write header
+                output_file.write("# Technical Report - All Section Notes\n")
+                output_file.write(f"# Generated on: {datetime.now().strftime('%B %d, %Y at %H:%M:%S')}\n")
+                output_file.write("# Comparison: PCT Hierarchy vs Reinforcement Learning\n")
+                output_file.write("=" * 80 + "\n\n")
+                
+                for section in self.sections:
+                    input_file = self.input_dir / f"{section}.txt"
+                    
+                    if input_file.exists():
+                        # Write section header
+                        section_title = self.section_titles[section]
+                        output_file.write(f"## {section_title.upper()}\n")
+                        output_file.write("-" * (len(section_title) + 3) + "\n\n")
+                        
+                        # Read and write section content
+                        with open(input_file, 'r', encoding='utf-8') as section_file:
+                            content = section_file.read().strip()
+                            if content:
+                                output_file.write(content)
+                            else:
+                                output_file.write("[No content provided]")
+                        
+                        output_file.write("\n\n" + "=" * 80 + "\n\n")
+                    else:
+                        # Write placeholder for missing files
+                        section_title = self.section_titles[section]
+                        output_file.write(f"## {section_title.upper()}\n")
+                        output_file.write("-" * (len(section_title) + 3) + "\n\n")
+                        output_file.write(f"[Input file {input_file.name} not found]\n\n")
+                        output_file.write("=" * 80 + "\n\n")
+            
+            print(f"✓ Input files concatenated: {output_path}")
+            return True
+            
+        except Exception as e:
+            print(f"Error concatenating input files: {e}")
+            return False
+    
     def generate_pdf(self, output_filename: str = "technical_report.pdf") -> bool:
         """Generate the complete PDF report from all section files."""
         print("Generating PDF report...")
@@ -320,10 +367,14 @@ class TechnicalReportGenerator:
             print(f"Error generating PDF: {e}")
             return False
     
-    def run(self, force_regenerate: bool = False, pdf_only: bool = False) -> bool:
+    def run(self, force_regenerate: bool = False, pdf_only: bool = False, concatenate_only: bool = False) -> bool:
         """Main execution method."""
         print("Technical Report Generator")
         print("=" * 50)
+        
+        # If only concatenating input files
+        if concatenate_only:
+            return self.concatenate_input_files()
         
         if not pdf_only:
             if force_regenerate:
@@ -338,6 +389,9 @@ class TechnicalReportGenerator:
                 print(f"\nUpdated sections: {', '.join(updated_sections)}")
             else:
                 print("\nNo sections needed updating.")
+        
+        # Generate concatenated input file
+        self.concatenate_input_files()
         
         # Generate PDF if any sections were updated or if explicitly requested
         if not pdf_only:
@@ -453,6 +507,7 @@ Examples:
   %(prog)s                                     Smart generation (recommended)
   %(prog)s --force                            Force regenerate all sections
   %(prog)s --pdf-only                         Generate PDF from existing outputs
+  %(prog)s --concatenate-only                 Only concatenate input files
   %(prog)s --input-dir notes --output-dir reports    Use custom directories
   
 Workflow:
@@ -471,6 +526,8 @@ Workflow:
                         help="Force regenerate all sections (ignores change detection)")
     parser.add_argument("--pdf-only", action="store_true", 
                         help="Only generate PDF from existing output files (no AI generation)")
+    parser.add_argument("--concatenate-only", action="store_true",
+                        help="Only concatenate input files into a single file (no AI generation or PDF)")
     parser.add_argument("--create-samples", action="store_true", 
                         help="Create sample input files with template content")
     
@@ -482,7 +539,7 @@ Workflow:
         create_sample_input_files(generator.input_dir)
         return
     
-    success = generator.run(force_regenerate=args.force, pdf_only=args.pdf_only)
+    success = generator.run(force_regenerate=args.force, pdf_only=args.pdf_only, concatenate_only=args.concatenate_only)
     
     if success:
         print("\n✓ Report generation completed successfully!")

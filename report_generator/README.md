@@ -9,6 +9,7 @@ This application generates PDF technical reports comparing control systems for O
 - **Professional PDF Output**: Creates formatted PDFs with Times New Roman font and APA-style citations
 - **Modular Sections**: Supports standard technical report structure
 - **Change Tracking**: Maintains metadata to avoid unnecessary API calls
+- **Input Concatenation**: Automatically creates a single file with all your notes in the correct order
 
 ## Report Sections
 1. Executive Summary
@@ -102,6 +103,15 @@ python report_generator.py --pdf-only
 - Want to regenerate PDF with different formatting
 - Troubleshooting PDF generation issues
 
+#### 5. Concatenate Input Files Only
+```bash
+python report_generator.py --concatenate-only
+```
+**What it does:**
+- Creates a single file with all input notes in the correct order
+- Useful for overview, backup, or sharing your notes
+- No AI generation or PDF creation
+
 ### Advanced Usage
 
 #### Custom Directories
@@ -126,6 +136,9 @@ python report_generator.py --force --input-dir "notes" --output-dir "reports"
 
 # PDF only from custom output directory
 python report_generator.py --pdf-only --output-dir "backup_reports"
+
+# Concatenate input files only
+python report_generator.py --concatenate-only --input-dir "research_notes"
 ```
 
 ### Real-World Workflow Examples
@@ -167,6 +180,9 @@ python report_generator.py --pdf-only
 
 # If you want fresh content but keep existing structure
 python report_generator.py --force
+
+# Get an overview of all your notes in one file
+python report_generator.py --concatenate-only
 
 # Check what would be generated without actually doing it
 python report_generator.py --help
