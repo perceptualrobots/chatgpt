@@ -1,0 +1,484 @@
+import os
+import hashlib
+import json
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional
+import argparse
+
+from openai import OpenAI
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER
+from reportlab.pdfgen import canvas
+from reportlab.lib import colors
+from dotenv import load_dotenv
+
+class TechnicalReportGenerator:
+    """
+    Generates a PDF technical report comparing control systems for OpenAI Gym environments.
+    Compares Perceptual Control Theory hierarchy (evolutionary algorithm) vs Reinforcement Learning.
+    """
+    
+    def __init__(self, input_dir: str = "input", output_dir: str = "output"):
+        load_dotenv()
+        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.input_dir = Path(input_dir)
+        self.output_dir = Path(output_dir)
+        self.metadata_file = self.output_dir / "metadata.json"
+        
+        # Report sections in order
+        self.sections = [
+            "executive_summary",
+            "introduction", 
+            "background",
+            "methodology",
+            "experimental_results",
+            "discussion",
+            "recommendations_future_work",
+            "references"
+        ]
+        
+        # Section titles for PDF
+        self.section_titles = {
+            "executive_summary": "Executive Summary",
+            "introduction": "Introduction",
+            "background": "Background", 
+            "methodology": "Methodology",
+            "experimental_results": "Experimental Results",
+            "discussion": "Discussion",
+            "recommendations_future_work": "Recommendations & Future Work",
+            "references": "References"
+        }
+        
+        self.ensure_directories()
+        
+    def ensure_directories(self):
+        """Create input and output directories if they don't exist."""
+        self.input_dir.mkdir(exist_ok=True)
+        self.output_dir.mkdir(exist_ok=True)
+        
+    def get_file_hash(self, filepath: Path) -> str:
+        """Calculate MD5 hash of a file."""
+        if not filepath.exists():
+            return ""
+        
+        hash_md5 = hashlib.md5()
+        with open(filepath, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        return hash_md5.hexdigest()
+    
+    def load_metadata(self) -> Dict:
+        """Load metadata about file hashes and generation timestamps."""
+        if self.metadata_file.exists():
+            with open(self.metadata_file, 'r') as f:
+                return json.load(f)
+        return {}
+    
+    def save_metadata(self, metadata: Dict):
+        """Save metadata about file hashes and generation timestamps."""
+        with open(self.metadata_file, 'w') as f:
+            json.dump(metadata, f, indent=2)
+    
+    def needs_regeneration(self, section: str) -> bool:
+        """
+        Check if a section needs to be regenerated based on:
+        1. Output file doesn't exist
+        2. Input file has changed since last generation
+        """
+        input_file = self.input_dir / f"{section}.txt"
+        output_file = self.output_dir / f"{section}.txt"
+        
+        # If input file doesn't exist, skip this section
+        if not input_file.exists():
+            print(f"Warning: Input file {input_file} not found. Skipping {section}.")
+            return False
+            
+        # If output file doesn't exist, always regenerate
+        if not output_file.exists():
+            print(f"Output file {output_file} missing. Will regenerate {section}.")
+            return True
+            
+        # Check if input file has changed since last generation
+        current_hash = self.get_file_hash(input_file)
+        metadata = self.load_metadata()
+        
+        stored_hash = metadata.get(section, {}).get("input_hash", "")
+        if current_hash != stored_hash:
+            print(f"Input file {input_file} has changed. Will regenerate {section}.")
+            return True
+            
+        # No regeneration needed
+        return False
+    
+    def generate_section_prompt(self, section: str, notes: str) -> str:
+        """Generate the OpenAI prompt for a specific section."""
+        base_context = """
+        You are writing a technical report comparing control systems for an OpenAI Gym environment. 
+        The comparison is between:
+        1. A Perceptual Control Theory (PCT) hierarchy generated through an evolutionary algorithm
+        2. A controller derived by Reinforcement Learning (RL)
+        
+        Write in an academic, technical style appropriate for a research paper. Use Times New Roman formatting conceptually.
+        Include APA-style in-text citations where appropriate (use placeholder citations like (Author, Year)).
+        """
+        
+        section_specific_prompts = {
+            "executive_summary": "Write a concise executive summary (1-2 pages) that provides an overview of the entire study, key findings, and main conclusions.",
+            
+            "introduction": "Write an introduction that clearly states the research problem, objectives, and the significance of comparing PCT vs RL approaches in control systems.",
+            
+            "background": "Provide comprehensive background on Perceptual Control Theory, evolutionary algorithms, reinforcement learning, and OpenAI Gym environments. Establish the theoretical foundation.",
+            
+            "methodology": "Describe the experimental methodology, including the OpenAI Gym environment setup, PCT hierarchy design, evolutionary algorithm parameters, RL algorithm configuration, and evaluation metrics.",
+            
+            "experimental_results": "Present the experimental results with detailed analysis. Include descriptions of where figures and tables would be placed (e.g., '[Figure 1: Performance comparison graph would be inserted here]').",
+            
+            "discussion": "Analyze and interpret the results, comparing the strengths and weaknesses of each approach. Discuss implications and limitations of the study.",
+            
+            "recommendations_future_work": "Provide specific recommendations based on findings and outline potential future research directions.",
+            
+            "references": "Generate a comprehensive reference list in APA format with relevant papers on PCT, evolutionary algorithms, reinforcement learning, and control systems (use realistic but placeholder citations)."
+        }
+        
+        prompt = f"{base_context}\n\n{section_specific_prompts[section]}\n\nNotes for this section:\n{notes}\n\nGenerate the content for this section:"
+        
+        return prompt
+    
+    def generate_section_content(self, section: str) -> Optional[str]:
+        """Generate content for a specific section using OpenAI."""
+        input_file = self.input_dir / f"{section}.txt"
+        
+        if not input_file.exists():
+            print(f"Input file {input_file} not found. Skipping {section}.")
+            return None
+            
+        # Read notes from input file
+        with open(input_file, 'r', encoding='utf-8') as f:
+            notes = f.read().strip()
+            
+        if not notes:
+            print(f"Input file {input_file} is empty. Skipping {section}.")
+            return None
+            
+        print(f"Generating content for {section}...")
+        
+        try:
+            prompt = self.generate_section_prompt(section, notes)
+            
+            response = self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are an expert technical writer specializing in control systems and artificial intelligence research."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=2000,
+                temperature=0.7
+            )
+            
+            content = response.choices[0].message.content
+            
+            # Save generated content
+            output_file = self.output_dir / f"{section}.txt"
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(content)
+                
+            # Update metadata
+            metadata = self.load_metadata()
+            metadata[section] = {
+                "input_hash": self.get_file_hash(input_file),
+                "generated_at": datetime.now().isoformat(),
+                "output_file": str(output_file)
+            }
+            self.save_metadata(metadata)
+            
+            print(f"✓ Generated {section}")
+            return content
+            
+        except Exception as e:
+            print(f"Error generating {section}: {e}")
+            return None
+    
+    def generate_sections(self) -> List[str]:
+        """Generate content for all sections that need updates."""
+        updated_sections = []
+        
+        for section in self.sections:
+            if self.needs_regeneration(section):
+                content = self.generate_section_content(section)
+                if content:
+                    updated_sections.append(section)
+                    
+        return updated_sections
+    
+    def create_pdf_styles(self):
+        """Create custom styles for the PDF document."""
+        styles = getSampleStyleSheet()
+        
+        # Title style
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Title'],
+            fontSize=16,
+            spaceAfter=30,
+            alignment=TA_CENTER,
+            fontName='Times-Bold'
+        )
+        
+        # Heading style
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading1'],
+            fontSize=14,
+            spaceAfter=12,
+            spaceBefore=20,
+            fontName='Times-Bold'
+        )
+        
+        # Body style
+        body_style = ParagraphStyle(
+            'CustomBody',
+            parent=styles['Normal'],
+            fontSize=12,
+            spaceAfter=12,
+            alignment=TA_JUSTIFY,
+            fontName='Times-Roman',
+            leading=14
+        )
+        
+        return {
+            'title': title_style,
+            'heading': heading_style,
+            'body': body_style
+        }
+    
+    def generate_pdf(self, output_filename: str = "technical_report.pdf") -> bool:
+        """Generate the complete PDF report from all section files."""
+        print("Generating PDF report...")
+        
+        pdf_path = self.output_dir / output_filename
+        doc = SimpleDocTemplate(
+            str(pdf_path),
+            pagesize=letter,
+            rightMargin=72,
+            leftMargin=72,
+            topMargin=72,
+            bottomMargin=18
+        )
+        
+        story = []
+        styles = self.create_pdf_styles()
+        
+        # Title page
+        story.append(Paragraph("Comparison of Control Systems for OpenAI Gym Environments:", styles['title']))
+        story.append(Paragraph("Perceptual Control Theory vs Reinforcement Learning", styles['title']))
+        story.append(Spacer(1, 0.5*inch))
+        story.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y')}", styles['body']))
+        story.append(PageBreak())
+        
+        # Add each section
+        for section in self.sections:
+            output_file = self.output_dir / f"{section}.txt"
+            
+            if output_file.exists():
+                # Add section heading
+                story.append(Paragraph(self.section_titles[section], styles['heading']))
+                story.append(Spacer(1, 12))
+                
+                # Read and add section content
+                with open(output_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    
+                # Split content into paragraphs and add to story
+                paragraphs = content.split('\n\n')
+                for para in paragraphs:
+                    if para.strip():
+                        story.append(Paragraph(para.strip(), styles['body']))
+                        story.append(Spacer(1, 12))
+                        
+                story.append(Spacer(1, 24))
+            else:
+                print(f"Warning: Output file {output_file} not found. Skipping {section} in PDF.")
+        
+        try:
+            doc.build(story)
+            print(f"✓ PDF report generated: {pdf_path}")
+            return True
+        except Exception as e:
+            print(f"Error generating PDF: {e}")
+            return False
+    
+    def run(self, force_regenerate: bool = False, pdf_only: bool = False) -> bool:
+        """Main execution method."""
+        print("Technical Report Generator")
+        print("=" * 50)
+        
+        if not pdf_only:
+            if force_regenerate:
+                print("Force regenerating all sections...")
+                # Clear metadata to force regeneration
+                if self.metadata_file.exists():
+                    self.metadata_file.unlink()
+                    
+            updated_sections = self.generate_sections()
+            
+            if updated_sections:
+                print(f"\nUpdated sections: {', '.join(updated_sections)}")
+            else:
+                print("\nNo sections needed updating.")
+        
+        # Generate PDF if any sections were updated or if explicitly requested
+        if not pdf_only:
+            any_sections_exist = any((self.output_dir / f"{section}.txt").exists() for section in self.sections)
+        else:
+            any_sections_exist = True
+            
+        if any_sections_exist:
+            success = self.generate_pdf()
+            return success
+        else:
+            print("No output sections found. Please ensure input files exist and run generation first.")
+            return False
+
+def create_sample_input_files(input_dir: Path):
+    """Create sample input files for demonstration."""
+    sample_content = {
+        "executive_summary": """
+Key points for executive summary:
+- Study compares PCT hierarchy vs RL for OpenAI Gym control
+- PCT generated through evolutionary algorithm
+- RL uses deep Q-learning approach  
+- Performance metrics: stability, adaptability, computational efficiency
+- Key finding: PCT shows better interpretability, RL shows faster convergence
+""",
+        
+        "introduction": """
+Introduction notes:
+- Control systems critical for autonomous agents
+- Traditional control vs modern AI approaches
+- PCT offers biological inspiration and interpretability
+- RL provides data-driven learning capabilities
+- Research gap: direct comparison in standardized environment
+- OpenAI Gym provides consistent evaluation platform
+""",
+        
+        "background": """
+Background information to cover:
+- Perceptual Control Theory fundamentals (Powers, 1973)
+- Evolutionary algorithms for hierarchy optimization
+- Reinforcement learning theory and deep Q-networks
+- OpenAI Gym environment characteristics
+- Previous comparative studies limitations
+- Control system evaluation metrics
+""",
+        
+        "methodology": """
+Methodology details:
+- Environment: CartPole-v1 and MountainCar-v0
+- PCT hierarchy: 3-level control system
+- Evolutionary algorithm: NSGA-II with population 100
+- RL approach: DQN with experience replay
+- Evaluation metrics: episode rewards, stability measures, learning curves
+- Statistical analysis: t-tests, effect sizes
+- Hardware: NVIDIA RTX 3080, 32GB RAM
+""",
+        
+        "experimental_results": """
+Results to present:
+- Performance comparison across 1000 episodes
+- Learning curves for both approaches
+- Stability analysis during perturbations
+- Computational efficiency measurements
+- Statistical significance testing results
+- Ablation studies on key parameters
+""",
+        
+        "discussion": """
+Discussion points:
+- PCT advantages: interpretability, biological plausibility, stability
+- RL advantages: sample efficiency, generalization, scalability
+- Trade-offs between approaches
+- Implications for real-world applications
+- Limitations of current study
+- Unexpected findings and their explanations
+""",
+        
+        "recommendations_future_work": """
+Recommendations and future work:
+- Hybrid approaches combining PCT and RL
+- Testing on more complex environments
+- Real-world robotics applications
+- Computational optimization strategies
+- Human-interpretable AI systems
+- Longitudinal stability studies
+""",
+        
+        "references": """
+Key references to include:
+- Powers (1973) - Original PCT work
+- Sutton & Barto (2018) - RL textbook
+- Mnih et al. (2015) - DQN paper
+- Recent PCT applications in robotics
+- Evolutionary algorithm surveys
+- OpenAI Gym benchmarking studies
+"""
+    }
+    
+    for section, content in sample_content.items():
+        filepath = input_dir / f"{section}.txt"
+        if not filepath.exists():
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(content.strip())
+    
+    print(f"Sample input files created in {input_dir}")
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Generate technical report comparing PCT vs RL control systems",
+        epilog="""
+Examples:
+  %(prog)s --create-samples                    Create sample input files
+  %(prog)s                                     Smart generation (recommended)
+  %(prog)s --force                            Force regenerate all sections
+  %(prog)s --pdf-only                         Generate PDF from existing outputs
+  %(prog)s --input-dir notes --output-dir reports    Use custom directories
+  
+Workflow:
+  1. %(prog)s --create-samples                 # Create template files
+  2. Edit files in input/ directory            # Add your content
+  3. %(prog)s --force                          # Generate initial report
+  4. %(prog)s                                  # Daily updates (smart mode)
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("--input-dir", default="input", 
+                        help="Directory containing input notes files (default: input)")
+    parser.add_argument("--output-dir", default="output", 
+                        help="Directory for generated output files (default: output)") 
+    parser.add_argument("--force", action="store_true", 
+                        help="Force regenerate all sections (ignores change detection)")
+    parser.add_argument("--pdf-only", action="store_true", 
+                        help="Only generate PDF from existing output files (no AI generation)")
+    parser.add_argument("--create-samples", action="store_true", 
+                        help="Create sample input files with template content")
+    
+    args = parser.parse_args()
+    
+    generator = TechnicalReportGenerator(args.input_dir, args.output_dir)
+    
+    if args.create_samples:
+        create_sample_input_files(generator.input_dir)
+        return
+    
+    success = generator.run(force_regenerate=args.force, pdf_only=args.pdf_only)
+    
+    if success:
+        print("\n✓ Report generation completed successfully!")
+    else:
+        print("\n✗ Report generation failed.")
+
+if __name__ == "__main__":
+    main()
