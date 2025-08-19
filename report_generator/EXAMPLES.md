@@ -21,6 +21,9 @@ python report_generator.py --pdf-only
 
 # Concatenate input files only (no AI generation or PDF)
 python report_generator.py --concatenate-only
+
+# Specify environment name for customized content
+python report_generator.py --environment "Lunar Lander"
 ```
 
 ### Custom Directories
@@ -31,8 +34,8 @@ python report_generator.py --input-dir "my_notes" --output-dir "my_reports"
 # Create samples in custom directory
 python report_generator.py --create-samples --input-dir "project_notes"
 
-# Force regenerate with custom paths
-python report_generator.py --force --input-dir "notes" --output-dir "final_reports"
+# Force regenerate with custom paths and environment
+python report_generator.py --force --input-dir "notes" --output-dir "final_reports" --environment "Lunar Lander"
 ```
 
 ## Detailed Examples

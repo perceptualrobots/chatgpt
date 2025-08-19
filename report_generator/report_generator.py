@@ -22,7 +22,7 @@ class TechnicalReportGenerator:
     Compares Perceptual Control Theory hierarchy (evolutionary algorithm) vs Reinforcement Learning.
     """
     
-    def __init__(self, input_dir: str = "input", output_dir: str = "output"):
+    def __init__(self, input_dir: str = "input", output_dir: str = "output", environment: str = "OpenAI Gym"):
         # Look for .env file in the VS Code root folder (parent of report_generator)
         vscode_root = Path(__file__).parent.parent
         env_path = vscode_root / ".env"
@@ -37,6 +37,7 @@ class TechnicalReportGenerator:
         self.input_dir = Path(input_dir)
         self.output_dir = Path(output_dir)
         self.metadata_file = self.output_dir / "metadata.json"
+        self.environment = environment
         
         # Report sections in order
         self.sections = [
@@ -163,8 +164,8 @@ class TechnicalReportGenerator:
     
     def generate_section_prompt(self, section: str, notes: str) -> str:
         """Generate the OpenAI prompt for a specific section."""
-        base_context = """
-        You are writing a technical report comparing control systems for an OpenAI Gym environment. 
+        base_context = f"""
+        You are writing a technical report comparing control systems for the {self.environment} environment. 
         The comparison is between:
         1. A Perceptual Control Theory (PCT) hierarchy generated through an evolutionary algorithm
         2. A controller derived by Reinforcement Learning (RL)
@@ -178,11 +179,11 @@ class TechnicalReportGenerator:
             
             "introduction": "Write an introduction that clearly states the research problem, objectives, and the significance of comparing PCT vs RL approaches in control systems.",
             
-            "background": "Provide comprehensive background on Perceptual Control Theory, evolutionary algorithms, reinforcement learning, and OpenAI Gym environments. Establish the theoretical foundation.",
+            "background": f"Provide comprehensive background on Perceptual Control Theory, evolutionary algorithms, reinforcement learning, and the {self.environment} environment. Establish the theoretical foundation.",
             
-            "methodology": "Describe the experimental methodology, including the OpenAI Gym environment setup, PCT hierarchy design, evolutionary algorithm parameters, RL algorithm configuration, and evaluation metrics.",
+            "methodology": f"Describe the experimental methodology, including the {self.environment} environment setup, PCT hierarchy design, evolutionary algorithm parameters, RL algorithm configuration, and evaluation metrics.",
             
-            "experimental_results": "Present the experimental results with detailed analysis. Include descriptions of where figures and tables would be placed (e.g., '[Figure 1: Performance comparison graph would be inserted here]').",
+            "experimental_results": f"Present the experimental results with detailed analysis from the {self.environment} environment. Include descriptions of where figures and tables would be placed (e.g., '[Figure 1: Performance comparison graph would be inserted here]').",
             
             "discussion": "Analyze and interpret the results, comparing the strengths and weaknesses of each approach. Discuss implications and limitations of the study.",
             
@@ -276,7 +277,7 @@ class TechnicalReportGenerator:
             
         try:
             prompt = f"""
-            Based on the following technical report sections, write a concise abstract (150-250 words) that summarizes the research study. The abstract should include:
+            Based on the following technical report sections, write a concise abstract (150-250 words) that summarizes the research study comparing control systems for the {self.environment} environment. The abstract should include:
             1. Research objective and problem statement
             2. Methodology overview (PCT vs RL comparison)
             3. Key findings and results
@@ -416,9 +417,10 @@ class TechnicalReportGenerator:
         try:
             with open(output_path, 'w', encoding='utf-8') as output_file:
                 # Write header
-                output_file.write("# Technical Report - All Section Notes\n")
+                output_file.write(f"# Technical Report - All Section Notes\n")
                 output_file.write(f"# Generated on: {datetime.now().strftime('%B %d, %Y at %H:%M:%S')}\n")
-                output_file.write("# Comparison: PCT Hierarchy vs Reinforcement Learning\n")
+                output_file.write(f"# Environment: {self.environment}\n")
+                output_file.write(f"# Comparison: PCT Hierarchy vs Reinforcement Learning\n")
                 output_file.write("=" * 80 + "\n\n")
                 
                 for section in self.sections:
@@ -476,7 +478,7 @@ class TechnicalReportGenerator:
         styles = self.create_pdf_styles()
         
         # Title page with version, author, and abstract
-        story.append(Paragraph("Comparison of Control Systems for OpenAI Gym Environments:", styles['title']))
+        story.append(Paragraph(f"Comparison of Control Systems for {self.environment} Environment:", styles['title']))
         story.append(Paragraph("Perceptual Control Theory vs Reinforcement Learning", styles['title']))
         story.append(Spacer(1, 0.3*inch))
         story.append(Paragraph(f"Version {version}", styles['body']))
@@ -543,6 +545,7 @@ class TechnicalReportGenerator:
     def run(self, force_regenerate: bool = False, pdf_only: bool = False, concatenate_only: bool = False) -> bool:
         """Main execution method."""
         print("Technical Report Generator")
+        print(f"Environment: {self.environment}")
         print("=" * 50)
         
         # If only concatenating input files
@@ -584,17 +587,18 @@ def create_sample_input_files(input_dir: Path):
     sample_content = {
         "executive_summary": """
 Key points for executive summary:
-- Study compares PCT hierarchy vs RL for OpenAI Gym control
+- Study compares PCT hierarchy vs RL for control systems
 - PCT generated through evolutionary algorithm
 - RL uses deep Q-learning approach  
 - Performance metrics: stability, adaptability, computational efficiency
 - Key finding: PCT shows better interpretability, RL shows faster convergence
+- Environment-specific challenges and solutions
 """,
 
         "abstract": """
 Abstract notes (this will be auto-generated from other sections):
 - Research objective: Compare PCT vs RL control systems
-- Methodology: OpenAI Gym environment testing
+- Methodology: Environment testing and evaluation
 - Key findings: Trade-offs between interpretability and convergence
 - Conclusions: Each approach has distinct advantages
 Note: This section will be automatically generated from your other sections.
@@ -607,7 +611,7 @@ Introduction notes:
 - PCT offers biological inspiration and interpretability
 - RL provides data-driven learning capabilities
 - Research gap: direct comparison in standardized environment
-- OpenAI Gym provides consistent evaluation platform
+- Specific environment provides consistent evaluation platform
 """,
         
         "background": """
@@ -615,14 +619,14 @@ Background information to cover:
 - Perceptual Control Theory fundamentals (Powers, 1973)
 - Evolutionary algorithms for hierarchy optimization
 - Reinforcement learning theory and deep Q-networks
-- OpenAI Gym environment characteristics
+- Environment characteristics and challenges
 - Previous comparative studies limitations
 - Control system evaluation metrics
 """,
         
         "methodology": """
 Methodology details:
-- Environment: CartPole-v1 and MountainCar-v0
+- Environment: Specify your target environment (e.g., CartPole-v1, LunarLander-v2)
 - PCT hierarchy: 3-level control system
 - Evolutionary algorithm: NSGA-II with population 100
 - RL approach: DQN with experience replay
@@ -690,6 +694,7 @@ Examples:
   %(prog)s --force                            Force regenerate all sections
   %(prog)s --pdf-only                         Generate PDF from existing outputs
   %(prog)s --concatenate-only                 Only concatenate input files
+  %(prog)s --environment "Lunar Lander"       Specify environment name
   %(prog)s --input-dir notes --output-dir reports    Use custom directories
   
 Workflow:
@@ -703,7 +708,9 @@ Workflow:
     parser.add_argument("--input-dir", default="input", 
                         help="Directory containing input notes files (default: input)")
     parser.add_argument("--output-dir", default="output", 
-                        help="Directory for generated output files (default: output)") 
+                        help="Directory for generated output files (default: output)")
+    parser.add_argument("--environment", default="OpenAI Gym",
+                        help="Environment name to include in title and content (default: OpenAI Gym)")
     parser.add_argument("--force", action="store_true", 
                         help="Force regenerate all sections (ignores change detection)")
     parser.add_argument("--pdf-only", action="store_true", 
@@ -715,7 +722,7 @@ Workflow:
     
     args = parser.parse_args()
     
-    generator = TechnicalReportGenerator(args.input_dir, args.output_dir)
+    generator = TechnicalReportGenerator(args.input_dir, args.output_dir, args.environment)
     
     if args.create_samples:
         create_sample_input_files(generator.input_dir)

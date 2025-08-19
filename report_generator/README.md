@@ -96,6 +96,14 @@ python report_generator.py
 - Creates PDF if any sections were updated
 - Saves API costs by avoiding unnecessary regeneration
 
+#### 2a. Generate Report with Custom Environment
+```bash
+python report_generator.py --environment "Lunar Lander"
+```
+**What it does:**
+- Same as above but customizes the environment name in title and content
+- Environment name appears in PDF title and AI-generated content
+
 #### 3. Force Regenerate All Sections
 ```bash
 python report_generator.py --force
@@ -130,11 +138,17 @@ python report_generator.py --concatenate-only
 # Use different input/output directories
 python report_generator.py --input-dir "research_notes" --output-dir "final_reports"
 
+# Specify custom environment name
+python report_generator.py --environment "Lunar Lander"
+
+# Combine environment with other options
+python report_generator.py --environment "CartPole" --force
+
 # Relative paths work too
 python report_generator.py --input-dir "../notes" --output-dir "./reports"
 
-# Windows absolute paths
-python report_generator.py --input-dir "C:\Research\Notes" --output-dir "C:\Research\Output"
+# Windows absolute paths with environment
+python report_generator.py --input-dir "C:\Research\Notes" --output-dir "C:\Research\Output" --environment "MountainCar"
 ```
 
 #### Combined Options
@@ -142,14 +156,14 @@ python report_generator.py --input-dir "C:\Research\Notes" --output-dir "C:\Rese
 # Create samples in custom directory
 python report_generator.py --create-samples --input-dir "my_project_notes"
 
-# Force regenerate with custom directories
-python report_generator.py --force --input-dir "notes" --output-dir "reports"
+# Force regenerate with custom directories and environment
+python report_generator.py --force --input-dir "notes" --output-dir "reports" --environment "Lunar Lander"
 
 # PDF only from custom output directory
 python report_generator.py --pdf-only --output-dir "backup_reports"
 
-# Concatenate input files only
-python report_generator.py --concatenate-only --input-dir "research_notes"
+# Concatenate input files only with environment context
+python report_generator.py --concatenate-only --input-dir "research_notes" --environment "CartPole"
 ```
 
 ### Real-World Workflow Examples
