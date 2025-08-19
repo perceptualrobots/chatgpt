@@ -10,16 +10,22 @@ This application generates PDF technical reports comparing control systems for O
 - **Modular Sections**: Supports standard technical report structure
 - **Change Tracking**: Maintains metadata to avoid unnecessary API calls
 - **Input Concatenation**: Automatically creates a single file with all your notes in the correct order
+- **Version Control**: Automatically increments version numbers on each generation
+- **Auto-Generated Abstract**: Creates abstract based on content from other sections and displays it on the title page
+- **Author Attribution**: Includes author information on title page
 
 ## Report Sections
-1. Executive Summary
-2. Introduction  
-3. Background
-4. Methodology
-5. Experimental Results
-6. Discussion
-7. Recommendations & Future Work
-8. References
+1. Title Page (with Abstract, Version, and Author)
+2. Executive Summary
+3. Introduction  
+4. Background
+5. Methodology
+6. Experimental Results
+7. Discussion
+8. Recommendations & Future Work
+9. References
+
+**Note**: The Abstract is auto-generated from other sections and displayed on the title page.
 
 ## Setup
 
@@ -37,11 +43,13 @@ The application will automatically look for your OpenAI API key in these locatio
 Create a `.env` file in your VS Code root folder:
 ```
 OPENAI_API_KEY=your_openai_api_key_here
+REPORT_AUTHOR=Your Name
 ```
 
 Or if you prefer, create it in the report_generator directory:
 ```
 OPENAI_API_KEY=your_openai_api_key_here
+REPORT_AUTHOR=Your Name
 ```
 
 ### Directory Structure
@@ -49,19 +57,22 @@ OPENAI_API_KEY=your_openai_api_key_here
 report_generator/
 ├── input/                  # Your notes for each section (.txt files)
 │   ├── executive_summary.txt
+│   ├── abstract.txt        # Optional - will be auto-generated
 │   ├── introduction.txt
 │   ├── background.txt
 │   ├── methodology.txt
 │   ├── experimental_results.txt
 │   ├── discussion.txt
 │   ├── recommendations_future_work.txt
-│   └── references.txt
+│   ├── references.txt
+│   └── all_sections_notes.txt  # Auto-generated concatenated file
 ├── output/                 # Generated content and final PDF
 │   ├── executive_summary.txt
+│   ├── abstract.txt        # Auto-generated from other sections
 │   ├── introduction.txt
 │   ├── ...
-│   ├── metadata.json
-│   └── technical_report.pdf
+│   ├── metadata.json       # Version tracking and file hashes
+│   └── technical_report.pdf # Final PDF with version and author
 └── report_generator.py
 ```
 
@@ -221,6 +232,7 @@ The system tracks file changes using MD5 hashes. Sections are only regenerated w
 - APA-style citation placeholders
 - Proper spacing and margins
 - Automatic page breaks between sections
+- Centered page numbers on every page
 
 ### Error Handling
 - Graceful handling of missing input files
@@ -254,6 +266,12 @@ Customize the `create_pdf_styles()` method to adjust fonts, spacing, and formatt
 ### File Encoding Issues
 - Ensure input files are UTF-8 encoded
 - Check for special characters that might cause issues
+
+### Author and Version Configuration
+- Set `REPORT_AUTHOR` in your `.env` file to customize the author name on the title page
+- If no author is specified, "Research Team" will be used as the default
+- Version numbers start at 1.0.0 and increment automatically with each PDF generation
+- Version history is tracked in the metadata.json file
 
 ## Cost Optimization
 - The system avoids regenerating unchanged sections to minimize API costs

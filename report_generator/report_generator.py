@@ -10,7 +10,7 @@ from openai import OpenAI
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, PageTemplate, Frame
 from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
@@ -41,6 +41,7 @@ class TechnicalReportGenerator:
         # Report sections in order
         self.sections = [
             "executive_summary",
+            "abstract",  # Added abstract section
             "introduction", 
             "background",
             "methodology",
@@ -53,6 +54,7 @@ class TechnicalReportGenerator:
         # Section titles for PDF
         self.section_titles = {
             "executive_summary": "Executive Summary",
+            "abstract": "Abstract",  # Added abstract section
             "introduction": "Introduction",
             "background": "Background", 
             "methodology": "Methodology",
@@ -63,6 +65,42 @@ class TechnicalReportGenerator:
         }
         
         self.ensure_directories()
+        
+    def get_version_number(self) -> str:
+        """Get and increment version number."""
+        metadata = self.load_metadata()
+        current_version = metadata.get("version", "1.0.0")
+        
+        # Parse version (major.minor.patch)
+        parts = current_version.split(".")
+        major, minor, patch = int(parts[0]), int(parts[1]), int(parts[2])
+        
+        # Increment patch version
+        patch += 1
+        new_version = f"{major}.{minor}.{patch}"
+        
+        # Save new version
+        metadata["version"] = new_version
+        metadata["version_date"] = datetime.now().isoformat()
+        self.save_metadata(metadata)
+        
+        return new_version
+    
+    def get_author_name(self) -> str:
+        """Get author name from environment or metadata."""
+        # Try environment variable first
+        author = os.getenv("REPORT_AUTHOR")
+        if author:
+            return author
+            
+        # Try metadata
+        metadata = self.load_metadata()
+        author = metadata.get("author")
+        if author:
+            return author
+            
+        # Default fallback
+        return "Research Team"
         
     def ensure_directories(self):
         """Create input and output directories if they don't exist."""
@@ -150,7 +188,9 @@ class TechnicalReportGenerator:
             
             "recommendations_future_work": "Provide specific recommendations based on findings and outline potential future research directions.",
             
-            "references": "Generate a comprehensive reference list in APA format with relevant papers on PCT, evolutionary algorithms, reinforcement learning, and control systems (use realistic but placeholder citations)."
+            "references": "Generate a comprehensive reference list in APA format with relevant papers on PCT, evolutionary algorithms, reinforcement learning, and control systems (use realistic but placeholder citations).",
+            
+            "abstract": "Write a concise abstract (150-250 words) that summarizes the entire research study. The abstract should include: research objective, methodology overview, key findings, and main conclusions. This should be a standalone summary that gives readers a complete overview of the work."
         }
         
         prompt = f"{base_context}\n\n{section_specific_prompts[section]}\n\nNotes for this section:\n{notes}\n\nGenerate the content for this section:"
@@ -211,7 +251,98 @@ class TechnicalReportGenerator:
             print(f"Error generating {section}: {e}")
             return None
     
+    def generate_abstract_from_sections(self) -> Optional[str]:
+        """Generate abstract based on existing sections."""
+        print("Generating abstract from existing sections...")
+        
+        # Collect content from key sections
+        sections_for_abstract = [
+            "executive_summary", "introduction", "methodology", 
+            "experimental_results", "discussion", "recommendations_future_work"
+        ]
+        
+        combined_content = ""
+        for section in sections_for_abstract:
+            output_file = self.output_dir / f"{section}.txt"
+            if output_file.exists():
+                with open(output_file, 'r', encoding='utf-8') as f:
+                    content = f.read().strip()
+                    if content:
+                        combined_content += f"\n\n{self.section_titles[section]}:\n{content}"
+        
+        if not combined_content:
+            print("No existing sections found for abstract generation.")
+            return None
+            
+        try:
+            prompt = f"""
+            Based on the following technical report sections, write a concise abstract (150-250 words) that summarizes the research study. The abstract should include:
+            1. Research objective and problem statement
+            2. Methodology overview (PCT vs RL comparison)
+            3. Key findings and results
+            4. Main conclusions and implications
+            
+            Make it a standalone summary that gives readers a complete overview of the work.
+            
+            Report content:
+            {combined_content}
+            
+            Generate a professional abstract:
+            """
+            
+            response = self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are an expert technical writer specializing in research abstracts."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=400,
+                temperature=0.7
+            )
+            
+            abstract_content = response.choices[0].message.content
+            
+            # Save generated abstract
+            output_file = self.output_dir / "abstract.txt"
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(abstract_content)
+                
+            # Update metadata
+            metadata = self.load_metadata()
+            metadata["abstract"] = {
+                "generated_from_sections": True,
+                "generated_at": datetime.now().isoformat(),
+                "output_file": str(output_file)
+            }
+            self.save_metadata(metadata)
+            
+            print("✓ Generated abstract from existing sections")
+            return abstract_content
+            
+        except Exception as e:
+            print(f"Error generating abstract: {e}")
+            return None
+    
     def generate_sections(self) -> List[str]:
+        """Generate content for all sections that need updates."""
+        updated_sections = []
+        
+        # First, generate all regular sections (excluding abstract)
+        regular_sections = [s for s in self.sections if s != "abstract"]
+        
+        for section in regular_sections:
+            if self.needs_regeneration(section):
+                content = self.generate_section_content(section)
+                if content:
+                    updated_sections.append(section)
+        
+        # Generate abstract after other sections if any were updated
+        if updated_sections and "abstract" in self.sections:
+            abstract_content = self.generate_abstract_from_sections()
+            if abstract_content:
+                updated_sections.append("abstract")
+                    
+        return updated_sections
         """Generate content for all sections that need updates."""
         updated_sections = []
         
@@ -264,6 +395,18 @@ class TechnicalReportGenerator:
             'body': body_style
         }
     
+    def add_page_number(self, canvas, doc):
+        """Add page numbers to each page."""
+        page_num = canvas.getPageNumber()
+        text = f"{page_num}"  # Just the number, no "Page" prefix
+        canvas.saveState()
+        canvas.setFont('Times-Roman', 10)
+        # Center the page number at bottom of page
+        text_width = canvas.stringWidth(text, 'Times-Roman', 10)
+        x_position = (letter[0] - text_width) / 2
+        canvas.drawString(x_position, 36, text)
+        canvas.restoreState()
+    
     def concatenate_input_files(self, output_filename: str = "all_sections_notes.txt") -> bool:
         """Concatenate all input files in the correct order into a single file."""
         print("Concatenating input files...")
@@ -315,6 +458,10 @@ class TechnicalReportGenerator:
         """Generate the complete PDF report from all section files."""
         print("Generating PDF report...")
         
+        # Get version and author info
+        version = self.get_version_number()
+        author = self.get_author_name()
+        
         pdf_path = self.output_dir / output_filename
         doc = SimpleDocTemplate(
             str(pdf_path),
@@ -322,21 +469,46 @@ class TechnicalReportGenerator:
             rightMargin=72,
             leftMargin=72,
             topMargin=72,
-            bottomMargin=18
+            bottomMargin=54  # Increased bottom margin for page numbers
         )
         
         story = []
         styles = self.create_pdf_styles()
         
-        # Title page
+        # Title page with version, author, and abstract
         story.append(Paragraph("Comparison of Control Systems for OpenAI Gym Environments:", styles['title']))
         story.append(Paragraph("Perceptual Control Theory vs Reinforcement Learning", styles['title']))
-        story.append(Spacer(1, 0.5*inch))
+        story.append(Spacer(1, 0.3*inch))
+        story.append(Paragraph(f"Version {version}", styles['body']))
+        story.append(Spacer(1, 0.2*inch))
+        story.append(Paragraph(f"Author: {author}", styles['body']))
+        story.append(Spacer(1, 0.3*inch))
         story.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y')}", styles['body']))
+        
+        # Add abstract to title page if it exists
+        abstract_file = self.output_dir / "abstract.txt"
+        if abstract_file.exists():
+            story.append(Spacer(1, 0.4*inch))
+            story.append(Paragraph("Abstract", styles['heading']))
+            story.append(Spacer(1, 12))
+            
+            with open(abstract_file, 'r', encoding='utf-8') as f:
+                abstract_content = f.read().strip()
+                if abstract_content:
+                    # Split abstract into paragraphs
+                    paragraphs = abstract_content.split('\n\n')
+                    for para in paragraphs:
+                        if para.strip():
+                            story.append(Paragraph(para.strip(), styles['body']))
+                            story.append(Spacer(1, 12))
+        
         story.append(PageBreak())
         
-        # Add each section
+        # Add each section (excluding abstract since it's now on title page)
         for section in self.sections:
+            if section == "abstract":  # Skip abstract section
+                continue
+                
             output_file = self.output_dir / f"{section}.txt"
             
             if output_file.exists():
@@ -360,7 +532,8 @@ class TechnicalReportGenerator:
                 print(f"Warning: Output file {output_file} not found. Skipping {section} in PDF.")
         
         try:
-            doc.build(story)
+            # Build PDF with page numbers
+            doc.build(story, onFirstPage=self.add_page_number, onLaterPages=self.add_page_number)
             print(f"✓ PDF report generated: {pdf_path}")
             return True
         except Exception as e:
@@ -416,6 +589,15 @@ Key points for executive summary:
 - RL uses deep Q-learning approach  
 - Performance metrics: stability, adaptability, computational efficiency
 - Key finding: PCT shows better interpretability, RL shows faster convergence
+""",
+
+        "abstract": """
+Abstract notes (this will be auto-generated from other sections):
+- Research objective: Compare PCT vs RL control systems
+- Methodology: OpenAI Gym environment testing
+- Key findings: Trade-offs between interpretability and convergence
+- Conclusions: Each approach has distinct advantages
+Note: This section will be automatically generated from your other sections.
 """,
         
         "introduction": """
