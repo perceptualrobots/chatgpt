@@ -23,7 +23,16 @@ class TechnicalReportGenerator:
     """
     
     def __init__(self, input_dir: str = "input", output_dir: str = "output"):
-        load_dotenv()
+        # Look for .env file in the VS Code root folder (parent of report_generator)
+        vscode_root = Path(__file__).parent.parent
+        env_path = vscode_root / ".env"
+        
+        # Try VS Code root first, then current directory, then default locations
+        if env_path.exists():
+            load_dotenv(env_path)
+        else:
+            load_dotenv()  # This will check current directory and standard locations
+            
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.input_dir = Path(input_dir)
         self.output_dir = Path(output_dir)

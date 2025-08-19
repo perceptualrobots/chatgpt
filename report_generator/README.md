@@ -28,7 +28,17 @@ pip install openai reportlab python-dotenv
 ```
 
 ### Environment Configuration
-Create a `.env` file in the project root:
+The application will automatically look for your OpenAI API key in these locations (in order):
+1. `.env` file in the VS Code root folder (recommended)
+2. `.env` file in the current directory
+3. System environment variables
+
+Create a `.env` file in your VS Code root folder:
+```
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+Or if you prefer, create it in the report_generator directory:
 ```
 OPENAI_API_KEY=your_openai_api_key_here
 ```
