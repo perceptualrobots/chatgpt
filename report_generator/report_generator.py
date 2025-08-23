@@ -472,24 +472,22 @@ class TechnicalReportGenerator:
         
         story = []
         styles = self.create_pdf_styles()
-        
+
         # Title page with version, author, and abstract
         story.append(Paragraph(f"Comparison of Control Systems for {self.environment} Environment:", styles['title']))
         story.append(Paragraph("Perceptual Control Theory vs Reinforcement Learning", styles['title']))
         story.append(Spacer(1, 0.3*inch))
-        story.append(Paragraph(f"Version {version}", styles['body']))
-        story.append(Spacer(1, 0.2*inch))
-        story.append(Paragraph(f"Author: {author}", styles['body']))
+        meta_line = f"Author: {author} — Version {version} — {datetime.now().strftime('%B %d, %Y')}"
+        story.append(Paragraph(meta_line, styles['body']))
         story.append(Spacer(1, 0.3*inch))
-        story.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y')}", styles['body']))
-        
+
         # Add abstract to title page if it exists
         abstract_file = self.output_dir / "abstract.txt"
         if abstract_file.exists():
             story.append(Spacer(1, 0.4*inch))
             story.append(Paragraph("Abstract", styles['heading']))
             story.append(Spacer(1, 12))
-            
+
             with open(abstract_file, 'r', encoding='utf-8') as f:
                 abstract_content = f.read().strip()
                 if abstract_content:
@@ -499,7 +497,7 @@ class TechnicalReportGenerator:
                         if para.strip():
                             story.append(Paragraph(para.strip(), styles['body']))
                             story.append(Spacer(1, 12))
-        
+
         story.append(PageBreak())
 
         # Add each section (excluding abstract since it's now on title page)
