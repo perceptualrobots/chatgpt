@@ -18,8 +18,8 @@ from dotenv import load_dotenv
 
 class TechnicalReportGenerator:
     """
-    Generates a PDF technical report comparing control systems for OpenAI Gym environments.
-    Compares Perceptual Control Theory hierarchy (evolutionary algorithm) vs Reinforcement Learning.
+    Generates a PDF technical report presenting Perceptual Control Theory (PCT) applied to a target environment,
+    with a comparison against a Reinforcement Learning (RL) controller.
     """
     
     def __init__(self, input_dir: str = "input", output_dir: str = "output", environment: str = "OpenAI Gym"):
@@ -163,35 +163,36 @@ class TechnicalReportGenerator:
     def generate_section_prompt(self, section: str, notes: str) -> str:
         """Generate the OpenAI prompt for a specific section."""
         base_context = f"""
-        You are writing a technical report comparing control systems for the {self.environment} environment. 
-        The comparison is between:
-        1. A Perceptual Control Theory (PCT) hierarchy generated through an evolutionary algorithm
-        2. A controller derived by Reinforcement Learning (RL)
-        
+        You are writing a technical report that primarily presents a Perceptual Control Theory (PCT) controller applied to the {self.environment} environment,
+        and secondarily provides a comparison against a Reinforcement Learning (RL) controller as a baseline.
+
+        Emphasize the PCT approach, its rationale, architecture, implementation details, and performance in the environment.
+        Use RL as a comparator to contextualize results and highlight similarities/differences.
+
         Write in an academic, technical style appropriate for a research paper. Use Times New Roman formatting conceptually.
         Include APA-style in-text citations where appropriate (use placeholder citations like (Author, Year)).
         """
-        
+
         section_specific_prompts = {
-            "introduction": "Write an introduction that clearly states the research problem, objectives, and the significance of comparing PCT vs RL approaches in control systems.",
-            
-            "background": f"Provide comprehensive background on Perceptual Control Theory, evolutionary algorithms, reinforcement learning, and the {self.environment} environment. Establish the theoretical foundation.",
-            
-            "methodology": f"Describe the experimental methodology, including the {self.environment} environment setup, PCT hierarchy design, evolutionary algorithm parameters, RL algorithm configuration, and evaluation metrics.",
-            
-            "experimental_results": f"Present the experimental results with detailed analysis from the {self.environment} environment. Include descriptions of where figures and tables would be placed (e.g., '[Figure 1: Performance comparison graph would be inserted here]').",
-            
-            "discussion": "Analyze and interpret the results, comparing the strengths and weaknesses of each approach. Discuss implications and limitations of the study.",
-            
-            "recommendations_future_work": "Provide specific recommendations based on findings and outline potential future research directions.",
-            
-            "references": "Generate a comprehensive reference list in APA format with relevant papers on PCT, evolutionary algorithms, reinforcement learning, and control systems (use realistic but placeholder citations).",
-            
-            "abstract": "Write a concise abstract (150-250 words) that summarizes the entire research study. The abstract should include: research objective, methodology overview, key findings, and main conclusions. This should be a standalone summary that gives readers a complete overview of the work."
+            "introduction": "Write an introduction that frames the report as a presentation of PCT applied to the target environment, with a secondary comparison to an RL baseline. Clearly state the objectives and why PCT is an appropriate approach.",
+
+            "background": f"Provide comprehensive background emphasizing Perceptual Control Theory (principles, hierarchy, and control units), the {self.environment} environment, and briefly summarize RL concepts used as a comparator. Establish the theoretical foundation with a PCT-first emphasis.",
+
+            "methodology": f"Describe the methodology with PCT as the primary focus: the {self.environment} setup, PCT hierarchy design and training (e.g., evolutionary algorithm parameters), followed by a concise RL baseline configuration, evaluation metrics, and procedures.",
+
+            "experimental_results": f"Present results primarily for the PCT controller in the {self.environment} environment, including performance, stability, and interpretability aspects; then compare against the RL baseline. Include descriptions of where figures and tables would be placed (e.g., '[Figure 1: Performance comparison graph would be inserted here]').",
+
+            "discussion": "Analyze and interpret results with a PCT-first lens: strengths, limitations, implications, and design insights of PCT; then contrast with RL to highlight advantages/trade-offs.",
+
+            "recommendations_future_work": "Provide specific recommendations focusing on advancing PCT (architecture, training, analysis) and outline future research, including more rigorous RL baselines for comparison.",
+
+            "references": "Generate a comprehensive reference list in APA format with emphasis on PCT literature, along with relevant works on evolutionary algorithms, reinforcement learning, and control systems (use realistic but placeholder citations).",
+
+            "abstract": "Write a concise abstract (150-250 words) that summarizes PCT applied to the target environment, followed by a brief comparison with an RL baseline. Include objective, methodology overview, key findings, and main conclusions."
         }
-        
+
         prompt = f"{base_context}\n\n{section_specific_prompts[section]}\n\nNotes for this section:\n{notes}\n\nGenerate the content for this section:"
-        
+
         return prompt
     
     def generate_section_content(self, section: str) -> Optional[str]:
@@ -413,10 +414,10 @@ class TechnicalReportGenerator:
         try:
             with open(output_path, 'w', encoding='utf-8') as output_file:
                 # Write header
-                output_file.write(f"# Technical Report - All Section Notes\n")
+                output_file.write(f"# Technical Report - PCT Applied (with RL Comparison)\n")
                 output_file.write(f"# Generated on: {datetime.now().strftime('%B %d, %Y at %H:%M:%S')}\n")
                 output_file.write(f"# Environment: {self.environment}\n")
-                output_file.write(f"# Comparison: PCT Hierarchy vs Reinforcement Learning\n")
+                output_file.write(f"# Focus: PCT primary; RL comparator baseline\n")
                 output_file.write("=" * 80 + "\n\n")
                 
                 for section in self.sections:
@@ -455,11 +456,11 @@ class TechnicalReportGenerator:
     def generate_pdf(self, output_filename: str = "technical_report.pdf") -> bool:
         """Generate the complete PDF report from all section files."""
         print("Generating PDF report...")
-        
+
         # Get version and author info
         version = self.get_version_number()
         author = self.get_author_name()
-        
+
         pdf_path = self.output_dir / output_filename
         doc = SimpleDocTemplate(
             str(pdf_path),
@@ -469,13 +470,13 @@ class TechnicalReportGenerator:
             topMargin=72,
             bottomMargin=54  # Increased bottom margin for page numbers
         )
-        
+
         story = []
         styles = self.create_pdf_styles()
 
         # Title page with version, author, and abstract
-        story.append(Paragraph(f"Comparison of Control Systems for {self.environment} Environment:", styles['title']))
-        story.append(Paragraph("Perceptual Control Theory vs Reinforcement Learning", styles['title']))
+        story.append(Paragraph(f"PCT Applied to {self.environment}:", styles['title']))
+        story.append(Paragraph("with Comparative RL Baseline", styles['title']))
         story.append(Spacer(1, 0.3*inch))
         meta_line = f"Author: {author} — Version {version} — {datetime.now().strftime('%B %d, %Y')}"
         story.append(Paragraph(meta_line, styles['body']))
@@ -529,7 +530,7 @@ class TechnicalReportGenerator:
                 story.append(Spacer(1, 24))
             else:
                 print(f"Warning: Output file {output_file} not found. Skipping {section} in PDF.")
-        
+
         try:
             # Build PDF with page numbers
             doc.build(story, onFirstPage=self.add_page_number, onLaterPages=self.add_page_number)
