@@ -501,30 +501,33 @@ class TechnicalReportGenerator:
                             story.append(Spacer(1, 12))
         
         story.append(PageBreak())
-        
+
         # Add each section (excluding abstract since it's now on title page)
+        section_counter = 0
         for section in self.sections:
             if section == "abstract":  # Skip abstract section
                 continue
-                
+
             output_file = self.output_dir / f"{section}.txt"
-            
+
             if output_file.exists():
-                # Add section heading
-                story.append(Paragraph(self.section_titles[section], styles['heading']))
+                # Add numbered section heading
+                section_counter += 1
+                heading_text = f"{section_counter}. {self.section_titles[section]}"
+                story.append(Paragraph(heading_text, styles['heading']))
                 story.append(Spacer(1, 12))
-                
+
                 # Read and add section content
                 with open(output_file, 'r', encoding='utf-8') as f:
                     content = f.read()
-                    
+
                 # Split content into paragraphs and add to story
                 paragraphs = content.split('\n\n')
                 for para in paragraphs:
                     if para.strip():
                         story.append(Paragraph(para.strip(), styles['body']))
                         story.append(Spacer(1, 12))
-                        
+
                 story.append(Spacer(1, 24))
             else:
                 print(f"Warning: Output file {output_file} not found. Skipping {section} in PDF.")
@@ -535,8 +538,29 @@ class TechnicalReportGenerator:
             print(f"✓ PDF report generated: {pdf_path}")
             return True
         except Exception as e:
-            print(f"Error generating PDF: {e}")
-            return False
+            # On Windows, the PDF may be locked if open; try a timestamped filename
+            msg = str(e)
+            if isinstance(e, PermissionError) or "Permission denied" in msg:
+                fallback_name = f"technical_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                fallback_path = self.output_dir / fallback_name
+                try:
+                    fallback_doc = SimpleDocTemplate(
+                        str(fallback_path),
+                        pagesize=letter,
+                        rightMargin=72,
+                        leftMargin=72,
+                        topMargin=72,
+                        bottomMargin=54
+                    )
+                    fallback_doc.build(story, onFirstPage=self.add_page_number, onLaterPages=self.add_page_number)
+                    print(f"✓ PDF report generated (fallback): {fallback_path}")
+                    return True
+                except Exception as e2:
+                    print(f"Error generating PDF (fallback): {e2}")
+                    return False
+            else:
+                print(f"Error generating PDF: {e}")
+                return False
     
     def run(self, force_regenerate: bool = False, pdf_only: bool = False, concatenate_only: bool = False) -> bool:
         """Main execution method."""
