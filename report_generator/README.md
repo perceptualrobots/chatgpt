@@ -16,14 +16,13 @@ This application generates PDF technical reports comparing control systems for O
 
 ## Report Sections
 1. Title Page (with Abstract, Version, and Author)
-2. Executive Summary
-3. Introduction  
-4. Background
-5. Methodology
-6. Experimental Results
-7. Discussion
-8. Recommendations & Future Work
-9. References
+2. Introduction  
+3. Background
+4. Methodology
+5. Experimental Results
+6. Discussion
+7. Recommendations & Future Work
+8. References
 
 **Note**: The Abstract is auto-generated from other sections and displayed on the title page.
 
@@ -56,7 +55,6 @@ REPORT_AUTHOR=Your Name
 ```
 report_generator/
 ├── input/                  # Your notes for each section (.txt files)
-│   ├── executive_summary.txt
 │   ├── abstract.txt        # Optional - will be auto-generated
 │   ├── introduction.txt
 │   ├── background.txt
@@ -67,7 +65,6 @@ report_generator/
 │   ├── references.txt
 │   └── all_sections_notes.txt  # Auto-generated concatenated file
 ├── output/                 # Generated content and final PDF
-│   ├── executive_summary.txt
 │   ├── abstract.txt        # Auto-generated from other sections
 │   ├── introduction.txt
 │   ├── ...
@@ -334,13 +331,11 @@ $ python report_generator.py --force
 Technical Report Generator
 ==================================================
 Force regenerating all sections...
-Generating content for executive_summary...
-✓ Generated executive_summary
 Generating content for introduction...
 ✓ Generated introduction
 [... continues for all sections ...]
 
-Updated sections: executive_summary, introduction, background, methodology, experimental_results, discussion, recommendations_future_work, references
+Updated sections: introduction, background, methodology, experimental_results, discussion, recommendations_future_work, references
 Generating PDF report...
 ✓ PDF report generated: output\technical_report.pdf
 
