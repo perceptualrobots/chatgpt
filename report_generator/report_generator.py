@@ -39,6 +39,13 @@ class TechnicalReportGenerator:
         self.metadata_file = self.output_dir / "metadata.json"
         self.environment = environment
         
+        # Load report metadata from environment variables
+        self.report_author = os.getenv("REPORT_AUTHOR", "Research Team")
+        self.report_email = os.getenv("REPORT_EMAIL", "")
+        self.report_title = os.getenv("REPORT_TITLE", "")
+        self.report_subtitle = os.getenv("REPORT_SUBTITLE", "")
+        self.report_org = os.getenv("REPORT_ORG", "")
+        
         # Report sections in order (Executive Summary removed)
         self.sections = [
             "abstract",  # Added abstract section
@@ -87,12 +94,11 @@ class TechnicalReportGenerator:
     
     def get_author_name(self) -> str:
         """Get author name from environment or metadata."""
-        # Try environment variable first
-        author = os.getenv("REPORT_AUTHOR")
-        if author:
-            return author
+        # Use the class property if it exists
+        if self.report_author:
+            return self.report_author
             
-        # Try metadata
+        # Try metadata as fallback
         metadata = self.load_metadata()
         author = metadata.get("author")
         if author:
@@ -101,10 +107,53 @@ class TechnicalReportGenerator:
         # Default fallback
         return "Research Team"
         
+    def get_author_email(self) -> str:
+        """Get author email from environment or metadata."""
+        return self.report_email or ""
+
+    def get_report_organization(self) -> str:
+        """Get organization name from environment or metadata."""
+        return self.report_org or ""
+        
+    def get_report_title(self) -> str:
+        """Get report title from environment or metadata."""
+        return self.report_title or f"PCT Applied to {self.environment}"
+        
+    def get_report_subtitle(self) -> str:
+        """Get report subtitle from environment or metadata."""
+        return self.report_subtitle or "with Comparative RL Baseline"
+        
     def ensure_directories(self):
         """Create input and output directories if they don't exist."""
         self.input_dir.mkdir(exist_ok=True)
         self.output_dir.mkdir(exist_ok=True)
+        
+    def load_title_info(self):
+        """Load title information from title.txt if available."""
+        title_file = self.input_dir / "title.txt"
+        if title_file.exists():
+            try:
+                with open(title_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    
+                # Parse key-value pairs from the file
+                for line in content.splitlines():
+                    line = line.strip()
+                    if line and ":" in line:
+                        key, value = line.split(":", 1)
+                        key = key.strip()
+                        value = value.strip()
+                        
+                        if key.lower() == "subtitle":
+                            self.report_subtitle = value or self.report_subtitle
+                        elif key.lower() == "org":
+                            self.report_org = value or self.report_org
+                        elif key.lower() == "title":
+                            self.report_title = value or self.report_title
+                            
+                print(f"Title information loaded from {title_file}")
+            except Exception as e:
+                print(f"Error loading title information: {e}")
         
     def get_file_hash(self, filepath: Path) -> str:
         """Calculate MD5 hash of a file."""
@@ -460,6 +509,10 @@ class TechnicalReportGenerator:
         # Get version and author info
         version = self.get_version_number()
         author = self.get_author_name()
+        email = self.get_author_email()
+        title = self.get_report_title()
+        subtitle = self.get_report_subtitle()
+        org = self.get_report_organization()
 
         pdf_path = self.output_dir / output_filename
         doc = SimpleDocTemplate(
@@ -475,10 +528,18 @@ class TechnicalReportGenerator:
         styles = self.create_pdf_styles()
 
         # Title page with version, author, and abstract
-        story.append(Paragraph(f"PCT Applied to {self.environment}:", styles['title']))
-        story.append(Paragraph("with Comparative RL Baseline", styles['title']))
+        story.append(Paragraph(title, styles['title']))
+        story.append(Paragraph(subtitle, styles['title']))
         story.append(Spacer(1, 0.3*inch))
-        meta_line = f"Author: {author} — Version {version} — {datetime.now().strftime('%B %d, %Y')}"
+        
+        # Author line with organization and email if available
+        author_parts = [f"Author: {author}"]
+        if org:
+            author_parts.append(f"Organization: {org}")
+        if email:
+            author_parts.append(f"Email: {email}")
+        
+        meta_line = f"{' — '.join(author_parts)} — Version {version} — {datetime.now().strftime('%B %d, %Y')}"
         story.append(Paragraph(meta_line, styles['body']))
         story.append(Spacer(1, 0.3*inch))
 
@@ -566,6 +627,9 @@ class TechnicalReportGenerator:
         print("Technical Report Generator")
         print(f"Environment: {self.environment}")
         print("=" * 50)
+        
+        # Load title information from title.txt
+        self.load_title_info()
         
         # If only concatenating input files
         if concatenate_only:
