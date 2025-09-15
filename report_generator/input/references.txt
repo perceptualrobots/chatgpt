@@ -1,0 +1,7 @@
+Key references to include:
+- Powers (1973) - Original PCT work
+- Sutton & Barto (2018) - RL textbook
+- Mnih et al. (2015) - DQN paper
+- Recent PCT applications in robotics
+- Evolutionary algorithm surveys
+- OpenAI Gym benchmarking studies

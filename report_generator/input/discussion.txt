@@ -1,0 +1,7 @@
+Discussion points:
+- PCT advantages: interpretability, biological plausibility, stability
+- RL advantages: sample efficiency, generalization, scalability
+- Trade-offs between approaches
+- Implications for real-world applications
+- Limitations of current study
+- Unexpected findings and their explanations

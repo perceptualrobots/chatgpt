@@ -1,0 +1,7 @@
+Background information to cover:
+- Perceptual Control Theory fundamentals (Powers, 1973)
+- Evolutionary algorithms for hierarchy optimization
+- Reinforcement learning theory and deep Q-networks
+- Environment characteristics and challenges
+- Previous comparative studies limitations
+- Control system evaluation metrics

@@ -1,0 +1,8 @@
+Methodology details:
+- Environment: Specify your target environment (e.g., CartPole-v1, LunarLander-v2)
+- PCT hierarchy: 3-level control system
+- Evolutionary algorithm: NSGA-II with population 100
+- RL approach: DQN with experience replay
+- Evaluation metrics: episode rewards, stability measures, learning curves
+- Statistical analysis: t-tests, effect sizes
+- Hardware: NVIDIA RTX 3080, 32GB RAM
