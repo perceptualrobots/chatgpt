@@ -1,5 +1,5 @@
 Background information to cover:
-- Perceptual Control Theory fundamentals (Powers, 1973)
+- Perceptual Control Theory fundamentals - elegant and powerful hierarchical architecure, self-correcting feedback loop, adapts to environment (Powers, 1973)
 - Evolutionary algorithms for hierarchy optimization
 - Reinforcement learning theory and deep Q-networks
 - Environment characteristics and challenges
