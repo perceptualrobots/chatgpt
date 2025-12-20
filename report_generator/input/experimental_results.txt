@@ -1,6 +1,7 @@
 Results to present:
 
-- Performance comparison across 1000 episodes
+- Performance comparison across 100 episodes
+- Video Young, R. (2025) shows random controller, RL (Symphony) controller and the evolved PCT controller.
 
 
 

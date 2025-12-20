@@ -4,6 +4,5 @@ Methodology details:
 - Evolutionary algorithm: DEAP framework with Optuna hyperparameter optimization.
 - RL approach: Simphony taken from OpenAI Gym leaderboard.
 - Evaluation metrics: episodes, success of retries out of 100, steps, #nodes, #weights
-- Statistical analysis: t-tests, effect sizes
-- Hardware: spec of this machine
+- Hardware: spec of this machine (CPU not GPU)
 

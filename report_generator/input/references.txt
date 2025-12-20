@@ -5,4 +5,5 @@ Key references to include:
 - Mnih, V., Kavukcuoglu, K., Silver, D., Rusu, A. A., Veness, J., Bellemare, M. G., ... & Hassabis, D. (2015). Human-level control through deep reinforcement learning. Nature, 518(7540), 529-533.
 - Young, R. (2017). A General Architecture for Robotics Systems: A Perception-Based Approach to Artificial Life. Artificial Life, 23(2):236–286.
 - Young, R. (2020). Robotics in the real world: the perceptual control theory approach. In Mansell, W., editor, The Interdisciplinary Handbook of Perceptual Control Theory, chapter 14, pages 517–556. Academic Press.
-- OpenAI Gym benchmarking studies
+- Young, R. (2025) Lunar Lander PCT v. RL https://www.youtube.com/watch?v=sxW8pNze1Ro
+- timurgepard (2025) Implemenation of Lunar Lander with Symphony. Github  https://github.com/timurgepard/Simphony, Video https://www.youtube.com/watch?v=7RA7GqHfdb0
