@@ -220,6 +220,9 @@ class TechnicalReportGenerator:
 
         Write in an academic, technical style appropriate for a research paper. Use Times New Roman formatting conceptually.
         Include APA-style in-text citations where appropriate (use placeholder citations like (Author, Year)).
+        
+        IMPORTANT: Do NOT include the section title or any heading in your response. Start directly with the content paragraphs.
+        The section title will be added automatically by the document generator.
         """
 
         section_specific_prompts = {
@@ -235,7 +238,7 @@ class TechnicalReportGenerator:
 
             "recommendations_future_work": "Provide specific recommendations focusing on advancing PCT (architecture, training, analysis) and outline future research, including more rigorous RL baselines for comparison.",
 
-            "references": "Generate a comprehensive reference list in APA format with emphasis on PCT literature, along with relevant works on evolutionary algorithms, reinforcement learning, and control systems (use realistic but placeholder citations).",
+            "references": "Generate ONLY a reference list in APA format. Do NOT include any introductory text, discussion, or conclusions. Just provide the properly formatted references cited in the report, with emphasis on PCT literature, along with relevant works on evolutionary algorithms, reinforcement learning, and control systems. Each reference should be on its own line or paragraph, properly formatted in APA style.",
 
             "abstract": "Write a concise abstract (150-250 words) that summarizes PCT applied to the target environment, followed by a brief comparison with an RL baseline. Include objective, methodology overview, key findings, and main conclusions."
         }
@@ -622,6 +625,54 @@ class TechnicalReportGenerator:
                 print(f"Error generating PDF: {e}")
                 return False
     
+    def generate_bibtex(self, output_filename: str = "references.bib") -> bool:
+        """Generate BibTeX file from references section."""
+        print("Generating BibTeX file...")
+        
+        references_file = self.output_dir / "references.txt"
+        if not references_file.exists():
+            print(f"References file {references_file} not found.")
+            return False
+        
+        bibtex_path = self.output_dir / output_filename
+        
+        try:
+            with open(references_file, 'r', encoding='utf-8') as f:
+                refs_content = f.read().strip()
+            
+            # Use OpenAI to convert references to BibTeX format
+            prompt = f"""Convert the following references to BibTeX format. 
+            Generate proper BibTeX entries with appropriate citation keys (e.g., powers1973, sutton2018, etc.).
+            Use standard BibTeX entry types (@article, @book, @inbook, @misc, etc.).
+            Ensure all entries are properly formatted and complete.
+            
+            References:
+            {refs_content}
+            
+            Generate only the BibTeX entries, no additional text:"""
+            
+            response = self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are an expert in bibliographic formatting and BibTeX."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=2000,
+                temperature=0.3
+            )
+            
+            bibtex_content = response.choices[0].message.content
+            
+            with open(bibtex_path, 'w', encoding='utf-8') as f:
+                f.write(bibtex_content)
+            
+            print(f"✓ BibTeX file generated: {bibtex_path}")
+            return True
+            
+        except Exception as e:
+            print(f"Error generating BibTeX: {e}")
+            return False
+    
     def generate_latex(self, output_filename: str = "technical_report.tex") -> bool:
         """Generate LaTeX source file from all section files."""
         print("Generating LaTeX report...")
@@ -698,7 +749,10 @@ class TechnicalReportGenerator:
                     with open(abstract_file, 'r', encoding='utf-8') as af:
                         abstract_content = af.read().strip()
                         if abstract_content:
-                            f.write(self._escape_latex(abstract_content) + "\n")
+                            # Convert citations before escaping
+                            abstract_content = self._convert_citations_to_latex(abstract_content)
+                            abstract_content = self._escape_latex(abstract_content, protect_commands=True)
+                            f.write(abstract_content + "\n")
                     f.write(r"\end{abstract}" + "\n")
                 
                 f.write(r"\end{titlepage}" + "\n\n")
@@ -710,6 +764,12 @@ class TechnicalReportGenerator:
                 section_counter = 0
                 for section in self.sections:
                     if section == "abstract":  # Skip abstract section
+                        continue
+                    
+                    if section == "references":  # Handle references specially
+                        # Use BibTeX instead of inline references
+                        f.write(r"\bibliographystyle{apalike}" + "\n")
+                        f.write(r"\bibliography{references}" + "\n\n")
                         continue
                     
                     output_file = self.output_dir / f"{section}.txt"
@@ -725,8 +785,10 @@ class TechnicalReportGenerator:
                         with open(output_file, 'r', encoding='utf-8') as sf:
                             content = sf.read().strip()
                             if content:
-                                # Process content for LaTeX
-                                content = self._escape_latex(content)
+                                # First convert citations to LaTeX cite commands
+                                content = self._convert_citations_to_latex(content)
+                                # Then escape LaTeX special characters (protecting cite commands)
+                                content = self._escape_latex(content, protect_commands=True)
                                 # Replace double newlines with paragraph breaks
                                 paragraphs = content.split('\n\n')
                                 for para in paragraphs:
@@ -747,8 +809,24 @@ class TechnicalReportGenerator:
             print(f"Error generating LaTeX: {e}")
             return False
     
-    def _escape_latex(self, text: str) -> str:
-        """Escape special LaTeX characters in text."""
+    def _escape_latex(self, text: str, protect_commands: bool = False) -> str:
+        """Escape special LaTeX characters in text.
+        
+        Args:
+            text: Text to escape
+            protect_commands: If True, don't escape text within \\cite{} and other LaTeX commands
+        """
+        if protect_commands:
+            # Temporarily replace ~\cite{...} and \cite{...} with placeholders that won't be escaped
+            import re
+            cite_pattern = r'(~?\\cite\{[^}]+\})'
+            cites = re.findall(cite_pattern, text)
+            cite_placeholders = {}
+            for i, cite in enumerate(cites):
+                placeholder = f'XXTEMPMARKER{i}XX'
+                cite_placeholders[placeholder] = cite
+                text = text.replace(cite, placeholder)
+        
         replacements = {
             '\\': r'\textbackslash{}',
             '{': r'\{',
@@ -771,6 +849,35 @@ class TechnicalReportGenerator:
             if char != '\\' and char in text:
                 text = text.replace(char, replacement)
         
+        if protect_commands:
+            # Restore \cite{...} commands (they're already properly formatted)
+            for placeholder, cite in cite_placeholders.items():
+                text = text.replace(placeholder, cite)
+        
+        return text
+    
+    def _convert_citations_to_latex(self, text: str) -> str:
+        """Convert (Author, Year) citations to LaTeX cite commands."""
+        import re
+        
+        # Common citation patterns to convert - using raw strings for patterns, normal strings for LaTeX output
+        citation_map = {
+            r'\(Powers et al\., 1960\)': r'~\\cite{powers1960}',  # Using raw string with escaped backslash
+            r'\(Powers, 1973\)': r'~\\cite{powers1973}',
+            r'\(Sutton and Barto, 2018\)': r'~\\cite{sutton2018}',
+            r'\(Sutton \& Barto, 2018\)': r'~\\cite{sutton2018}',
+            r'\(Mnih et al\., 2015\)': r'~\\cite{mnih2015}',
+            r'\(Young, 2017\)': r'~\\cite{young2017}',
+            r'\(Young, 2020\)': r'~\\cite{young2020}',
+            r'\(Young, 2025\)': r'~\\cite{young2025}',
+            r'\(timurgepard, 2025\)': r'~\\cite{timurgepard2025}',
+            # Generic patterns
+            r'\(Author, Year\)': '',  # Remove placeholder citations
+        }
+        
+        for pattern, replacement in citation_map.items():
+            text = re.sub(pattern, replacement, text)
+        
         return text
     
     def compile_latex_to_pdf(self, latex_filename: str = "technical_report.tex") -> bool:
@@ -786,13 +893,42 @@ class TechnicalReportGenerator:
         try:
             import subprocess
             
-            # Run pdflatex twice to resolve references
-            for run in range(2):
-                print(f"  Running pdflatex (pass {run + 1}/2)...")
+            # Run pdflatex -> bibtex -> pdflatex -> pdflatex for bibliography
+            print(f"  Running pdflatex (pass 1/3)...")
+            result = subprocess.run(
+                ['pdflatex', '-interaction=nonstopmode', 
+                 '-output-directory', str(self.output_dir), 
+                 latex_path.name],
+                capture_output=True,
+                text=True,
+                cwd=str(self.output_dir)
+            )
+            
+            if result.returncode != 0:
+                print(f"pdflatex error output:")
+                print(result.stdout)
+            
+            # Run bibtex
+            print(f"  Running bibtex...")
+            tex_basename = latex_path.stem
+            bibtex_result = subprocess.run(
+                ['bibtex', tex_basename],
+                capture_output=True,
+                text=True,
+                cwd=str(self.output_dir)
+            )
+            
+            if bibtex_result.returncode != 0:
+                print(f"bibtex warning (may be normal if no citations):")
+                print(bibtex_result.stdout)
+            
+            # Run pdflatex two more times to resolve references
+            for run in range(2, 4):
+                print(f"  Running pdflatex (pass {run}/3)...")
                 result = subprocess.run(
                     ['pdflatex', '-interaction=nonstopmode', 
                      '-output-directory', str(self.output_dir), 
-                     str(latex_path)],
+                     latex_path.name],
                     capture_output=True,
                     text=True,
                     cwd=str(self.output_dir)
@@ -801,7 +937,7 @@ class TechnicalReportGenerator:
                 if result.returncode != 0:
                     print(f"pdflatex error output:")
                     print(result.stdout)
-                    if run == 1:  # Only fail on second run
+                    if run == 3:  # Only fail on final run
                         return False
             
             pdf_path = self.output_dir / latex_filename.replace('.tex', '.pdf')
@@ -862,6 +998,11 @@ class TechnicalReportGenerator:
             
             # Generate LaTeX if requested
             if latex:
+                # Generate BibTeX first
+                bibtex_success = self.generate_bibtex()
+                success = success and bibtex_success
+                
+                # Generate LaTeX
                 latex_success = self.generate_latex()
                 success = success and latex_success
                 
@@ -1024,15 +1165,6 @@ Workflow:
         return
     
     success = generator.run(force_regenerate=args.force, pdf_only=args.pdf_only, concatenate_only=args.concatenate_only, latex=args.latex)
-    
-    if success:
-        print("\n✓ Report generation completed successfully!")
-    else:
-        print("\n✗ Report generation failed.")
-
-if __name__ == "__main__":
-    main()
-
     
     if success:
         print("\n✓ Report generation completed successfully!")
