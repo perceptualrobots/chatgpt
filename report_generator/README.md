@@ -7,6 +7,7 @@ This application generates PDF technical reports comparing control systems for O
 - **Smart Generation**: Only regenerates sections when input files change (based on file hash comparison)
 - **OpenAI Integration**: Uses GPT-4 to generate technical content from your notes
 - **Professional PDF Output**: Creates formatted PDFs with Times New Roman font and APA-style citations
+- **LaTeX Output**: Generate LaTeX source files and compile to PDF for academic publishing
 - **Modular Sections**: Supports standard technical report structure
 - **Change Tracking**: Maintains metadata to avoid unnecessary API calls
 - **Input Concatenation**: Automatically creates a single file with all your notes in the correct order
@@ -31,6 +32,24 @@ This application generates PDF technical reports comparing control systems for O
 ### Prerequisites
 ```bash
 pip install openai reportlab python-dotenv
+```
+
+#### Optional: LaTeX for Academic Publishing
+To generate LaTeX PDFs (optional feature), install a LaTeX distribution:
+
+**Windows:**
+- Download and install [MiKTeX](https://miktex.org/download) or [TeX Live](https://www.tug.org/texlive/)
+- After installation, pdflatex will be available in your PATH
+
+**Linux:**
+```bash
+sudo apt-get install texlive-full  # Debian/Ubuntu
+sudo yum install texlive-scheme-full  # RedHat/Fedora
+```
+
+**macOS:**
+```bash
+brew install --cask mactex
 ```
 
 ### Environment Configuration
@@ -64,11 +83,14 @@ report_generator/
 │   ├── recommendations_future_work.txt
 │   ├── references.txt
 │   └── all_sections_notes.txt  # Auto-generated concatenated file
-├── output/                 # Generated content and final PDF
+├── output/                 # Generated content and final PDFs
 │   ├── abstract.txt        # Auto-generated from other sections
 │   ├── introduction.txt
 │   ├── ...
 │   ├── metadata.json       # Version tracking and file hashes
+│   ├── technical_report.pdf      # ReportLab PDF output
+│   ├── technical_report.tex      # LaTeX source (with --latex)
+│   └── technical_report.pdf      # LaTeX compiled PDF (with --latex)
 │   └── technical_report.pdf # Final PDF with version and author
 └── report_generator.py
 ```
@@ -119,7 +141,22 @@ python report_generator.py --pdf-only
 - Want to regenerate PDF with different formatting
 - Troubleshooting PDF generation issues
 
-#### 5. Concatenate Input Files Only
+#### 5. Generate LaTeX and Compile to PDF
+```bash
+python report_generator.py --latex
+```
+**What it does:**
+- Generates a LaTeX source file (.tex) from existing content
+- Automatically compiles to PDF using pdflatex
+- Requires LaTeX distribution installed (MiKTeX or TeX Live)
+
+**Combined with other flags:**
+```bash
+python report_generator.py --force --latex  # Generate all content and LaTeX
+python report_generator.py --pdf-only --latex  # Only generate LaTeX from existing content
+```
+
+#### 6. Concatenate Input Files Only
 ```bash
 python report_generator.py --concatenate-only
 ```
@@ -262,6 +299,50 @@ Modify the `section_specific_prompts` dictionary in `generate_section_prompt()` 
 ### PDF Styling
 Customize the `create_pdf_styles()` method to adjust fonts, spacing, and formatting.
 
+## LaTeX Output
+
+The report generator can create LaTeX source files for academic publishing and custom typesetting.
+
+### Generating LaTeX
+```bash
+# Generate LaTeX from existing content
+python report_generator.py --pdf-only --latex
+
+# Generate all content and create LaTeX
+python report_generator.py --force --latex
+```
+
+### Output Files
+When using `--latex`, the following files are created:
+- `output/technical_report.tex` - LaTeX source file
+- `output/technical_report.pdf` - Compiled PDF (if pdflatex is available)
+- Various auxiliary files (.aux, .log, .out) - LaTeX compilation artifacts
+
+### LaTeX Features
+- Professional academic document formatting
+- Times New Roman font (using times package)
+- Proper title page with abstract
+- Numbered sections
+- Hyperlinked table of contents (if added)
+- Bibliography support via natbib
+- 1-inch margins
+- One-and-a-half spacing
+
+### Manual Compilation
+If pdflatex is not available or you prefer manual compilation:
+```bash
+cd output
+pdflatex technical_report.tex
+pdflatex technical_report.tex  # Run twice for references
+```
+
+### Editing LaTeX
+You can manually edit `technical_report.tex` before compilation to:
+- Add equations, figures, or tables
+- Customize formatting
+- Include bibliography files
+- Add custom LaTeX packages
+
 ## Troubleshooting
 
 ### OpenAI API Issues
@@ -273,6 +354,12 @@ Customize the `create_pdf_styles()` method to adjust fonts, spacing, and formatt
 - Ensure reportlab is properly installed
 - Check file permissions in the output directory
 - Verify all required output files exist
+
+### LaTeX Compilation Issues
+- **pdflatex not found**: Install MiKTeX (Windows) or TeX Live (Linux/macOS)
+- **Missing packages**: MiKTeX auto-installs packages; TeX Live may need `tlmgr install <package>`
+- **Compilation errors**: Check the .log file in the output directory
+- **Special characters**: The tool automatically escapes LaTeX special characters
 
 ### File Encoding Issues
 - Ensure input files are UTF-8 encoded

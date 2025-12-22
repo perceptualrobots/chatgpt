@@ -1,6 +1,6 @@
 # Technical Report - PCT Applied (with RL Comparison)
-# Generated on: December 20, 2025 at 20:16:52
-# Environment: Lunar Lander
+# Generated on: December 22, 2025 at 21:01:29
+# Environment: OpenAI Gym
 # Focus: PCT primary; RL comparator baseline
 ================================================================================
 

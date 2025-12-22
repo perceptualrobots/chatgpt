@@ -622,7 +622,206 @@ class TechnicalReportGenerator:
                 print(f"Error generating PDF: {e}")
                 return False
     
-    def run(self, force_regenerate: bool = False, pdf_only: bool = False, concatenate_only: bool = False) -> bool:
+    def generate_latex(self, output_filename: str = "technical_report.tex") -> bool:
+        """Generate LaTeX source file from all section files."""
+        print("Generating LaTeX report...")
+        
+        # Get version and author info
+        version = self.get_version_number()
+        author = self.get_author_name()
+        email = self.get_author_email()
+        title = self.get_report_title()
+        subtitle = self.get_report_subtitle()
+        org = self.get_report_organization()
+        
+        latex_path = self.output_dir / output_filename
+        
+        try:
+            with open(latex_path, 'w', encoding='utf-8') as f:
+                # LaTeX preamble
+                f.write(r"""\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{times}
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\usepackage{parskip}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{natbib}
+
+% Configure hyperlinks
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+% Configure section formatting
+\titleformat{\section}{\Large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection.}{0.5em}{}
+
+% Line spacing
+\onehalfspacing
+
+\begin{document}
+
+""")
+                
+                # Title page
+                f.write(r"\begin{titlepage}" + "\n")
+                f.write(r"\centering" + "\n")
+                f.write(r"\vspace*{2cm}" + "\n\n")
+                f.write(f"{{\\huge\\bfseries {self._escape_latex(title)}\\par}}\n\n")
+                f.write(r"\vspace{0.5cm}" + "\n")
+                f.write(f"{{\\Large {self._escape_latex(subtitle)}\\par}}\n\n")
+                f.write(r"\vspace{1.5cm}" + "\n\n")
+                
+                # Author info
+                f.write(f"{{\\large\\textbf{{Author:}} {self._escape_latex(author)}\\par}}\n")
+                if org:
+                    f.write(f"{{\\large\\textbf{{Organization:}} {self._escape_latex(org)}\\par}}\n")
+                if email:
+                    f.write(f"{{\\large\\textbf{{Email:}} \\texttt{{{self._escape_latex(email)}}}\\par}}\n")
+                f.write(r"\vspace{0.5cm}" + "\n")
+                f.write(f"{{\\large\\textbf{{Version:}} {version}\\par}}\n")
+                f.write(f"{{\\large\\textbf{{Date:}} {datetime.now().strftime('%B %d, %Y')}\\par}}\n\n")
+                
+                # Abstract on title page
+                abstract_file = self.output_dir / "abstract.txt"
+                if abstract_file.exists():
+                    f.write(r"\vspace{1.5cm}" + "\n")
+                    f.write(r"\begin{abstract}" + "\n")
+                    with open(abstract_file, 'r', encoding='utf-8') as af:
+                        abstract_content = af.read().strip()
+                        if abstract_content:
+                            f.write(self._escape_latex(abstract_content) + "\n")
+                    f.write(r"\end{abstract}" + "\n")
+                
+                f.write(r"\end{titlepage}" + "\n\n")
+                
+                # New page for content
+                f.write(r"\newpage" + "\n\n")
+                
+                # Add each section
+                section_counter = 0
+                for section in self.sections:
+                    if section == "abstract":  # Skip abstract section
+                        continue
+                    
+                    output_file = self.output_dir / f"{section}.txt"
+                    
+                    if output_file.exists():
+                        section_counter += 1
+                        section_title = self.section_titles[section]
+                        
+                        # Add section
+                        f.write(f"\\section{{{self._escape_latex(section_title)}}}\n\n")
+                        
+                        # Read and add content
+                        with open(output_file, 'r', encoding='utf-8') as sf:
+                            content = sf.read().strip()
+                            if content:
+                                # Process content for LaTeX
+                                content = self._escape_latex(content)
+                                # Replace double newlines with paragraph breaks
+                                paragraphs = content.split('\n\n')
+                                for para in paragraphs:
+                                    if para.strip():
+                                        f.write(para.strip() + "\n\n")
+                        
+                        f.write("\n")
+                    else:
+                        print(f"Warning: Output file {output_file} not found. Skipping {section} in LaTeX.")
+                
+                # End document
+                f.write(r"\end{document}" + "\n")
+            
+            print(f"✓ LaTeX report generated: {latex_path}")
+            return True
+            
+        except Exception as e:
+            print(f"Error generating LaTeX: {e}")
+            return False
+    
+    def _escape_latex(self, text: str) -> str:
+        """Escape special LaTeX characters in text."""
+        replacements = {
+            '\\': r'\textbackslash{}',
+            '{': r'\{',
+            '}': r'\}',
+            '$': r'\$',
+            '&': r'\&',
+            '%': r'\%',
+            '#': r'\#',
+            '_': r'\_',
+            '~': r'\textasciitilde{}',
+            '^': r'\textasciicircum{}'
+        }
+        
+        # First pass: escape backslash
+        if '\\' in text:
+            text = text.replace('\\', replacements['\\'])
+        
+        # Second pass: escape other characters
+        for char, replacement in replacements.items():
+            if char != '\\' and char in text:
+                text = text.replace(char, replacement)
+        
+        return text
+    
+    def compile_latex_to_pdf(self, latex_filename: str = "technical_report.tex") -> bool:
+        """Compile LaTeX file to PDF using pdflatex."""
+        print("Compiling LaTeX to PDF...")
+        
+        latex_path = self.output_dir / latex_filename
+        
+        if not latex_path.exists():
+            print(f"LaTeX file {latex_path} not found. Cannot compile.")
+            return False
+        
+        try:
+            import subprocess
+            
+            # Run pdflatex twice to resolve references
+            for run in range(2):
+                print(f"  Running pdflatex (pass {run + 1}/2)...")
+                result = subprocess.run(
+                    ['pdflatex', '-interaction=nonstopmode', 
+                     '-output-directory', str(self.output_dir), 
+                     str(latex_path)],
+                    capture_output=True,
+                    text=True,
+                    cwd=str(self.output_dir)
+                )
+                
+                if result.returncode != 0:
+                    print(f"pdflatex error output:")
+                    print(result.stdout)
+                    if run == 1:  # Only fail on second run
+                        return False
+            
+            pdf_path = self.output_dir / latex_filename.replace('.tex', '.pdf')
+            if pdf_path.exists():
+                print(f"✓ LaTeX PDF compiled: {pdf_path}")
+                return True
+            else:
+                print("PDF file not created after compilation.")
+                return False
+                
+        except FileNotFoundError:
+            print("Error: pdflatex not found. Please install a LaTeX distribution (e.g., MiKTeX or TeX Live).")
+            print("For Windows: https://miktex.org/download")
+            print("For more info, see: https://www.latex-project.org/get/")
+            return False
+        except Exception as e:
+            print(f"Error compiling LaTeX: {e}")
+            return False
+    
+    def run(self, force_regenerate: bool = False, pdf_only: bool = False, concatenate_only: bool = False, latex: bool = False) -> bool:
         """Main execution method."""
         print("Technical Report Generator")
         print(f"Environment: {self.environment}")
@@ -652,14 +851,29 @@ class TechnicalReportGenerator:
         # Generate concatenated input file
         self.concatenate_input_files()
         
-        # Generate PDF if any sections were updated or if explicitly requested
+        # Generate outputs based on flags
         if not pdf_only:
             any_sections_exist = any((self.output_dir / f"{section}.txt").exists() for section in self.sections)
         else:
             any_sections_exist = True
             
         if any_sections_exist:
-            success = self.generate_pdf()
+            success = True
+            
+            # Generate LaTeX if requested
+            if latex:
+                latex_success = self.generate_latex()
+                success = success and latex_success
+                
+                # Compile LaTeX to PDF if LaTeX generation succeeded
+                if latex_success:
+                    compile_success = self.compile_latex_to_pdf()
+                    success = success and compile_success
+            
+            # Always generate ReportLab PDF
+            pdf_success = self.generate_pdf()
+            success = success and pdf_success
+            
             return success
         else:
             print("No output sections found. Please ensure input files exist and run generation first.")
@@ -771,6 +985,7 @@ Examples:
   %(prog)s                                     Smart generation (recommended)
   %(prog)s --force                            Force regenerate all sections
   %(prog)s --pdf-only                         Generate PDF from existing outputs
+  %(prog)s --latex                            Generate LaTeX and compile to PDF
   %(prog)s --concatenate-only                 Only concatenate input files
   %(prog)s --environment "Lunar Lander"       Specify environment name
   %(prog)s --input-dir notes --output-dir reports    Use custom directories
@@ -778,7 +993,7 @@ Examples:
 Workflow:
   1. %(prog)s --create-samples                 # Create template files
   2. Edit files in input/ directory            # Add your content
-  3. %(prog)s --force                          # Generate initial report
+  3. %(prog)s --force --latex                  # Generate initial report with LaTeX
   4. %(prog)s                                  # Daily updates (smart mode)
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter
@@ -793,6 +1008,8 @@ Workflow:
                         help="Force regenerate all sections (ignores change detection)")
     parser.add_argument("--pdf-only", action="store_true", 
                         help="Only generate PDF from existing output files (no AI generation)")
+    parser.add_argument("--latex", action="store_true",
+                        help="Generate LaTeX source file and compile to PDF (requires pdflatex)")
     parser.add_argument("--concatenate-only", action="store_true",
                         help="Only concatenate input files into a single file (no AI generation or PDF)")
     parser.add_argument("--create-samples", action="store_true", 
@@ -806,7 +1023,16 @@ Workflow:
         create_sample_input_files(generator.input_dir)
         return
     
-    success = generator.run(force_regenerate=args.force, pdf_only=args.pdf_only, concatenate_only=args.concatenate_only)
+    success = generator.run(force_regenerate=args.force, pdf_only=args.pdf_only, concatenate_only=args.concatenate_only, latex=args.latex)
+    
+    if success:
+        print("\n✓ Report generation completed successfully!")
+    else:
+        print("\n✗ Report generation failed.")
+
+if __name__ == "__main__":
+    main()
+
     
     if success:
         print("\n✓ Report generation completed successfully!")
