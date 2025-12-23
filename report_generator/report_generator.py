@@ -294,7 +294,7 @@ class TechnicalReportGenerator:
             }
             self.save_metadata(metadata)
             
-            print(f"✓ Generated {section}")
+            print(f"[OK] Generated {section}")
             return content
             
         except Exception as e:
@@ -366,7 +366,7 @@ class TechnicalReportGenerator:
             }
             self.save_metadata(metadata)
             
-            print("✓ Generated abstract from existing sections")
+            print("[OK] Generated abstract from existing sections")
             return abstract_content
             
         except Exception as e:
@@ -498,7 +498,7 @@ class TechnicalReportGenerator:
                         output_file.write(f"[Input file {input_file.name} not found]\n\n")
                         output_file.write("=" * 80 + "\n\n")
             
-            print(f"✓ Input files concatenated: {output_path}")
+            print(f"[OK] Input files concatenated: {output_path}")
             return True
             
         except Exception as e:
@@ -598,7 +598,7 @@ class TechnicalReportGenerator:
         try:
             # Build PDF with page numbers
             doc.build(story, onFirstPage=self.add_page_number, onLaterPages=self.add_page_number)
-            print(f"✓ PDF report generated: {pdf_path}")
+            print(f"[OK] PDF report generated: {pdf_path}")
             return True
         except Exception as e:
             # On Windows, the PDF may be locked if open; try a timestamped filename
@@ -616,7 +616,7 @@ class TechnicalReportGenerator:
                         bottomMargin=54
                     )
                     fallback_doc.build(story, onFirstPage=self.add_page_number, onLaterPages=self.add_page_number)
-                    print(f"✓ PDF report generated (fallback): {fallback_path}")
+                    print(f"[OK] PDF report generated (fallback): {fallback_path}")
                     return True
                 except Exception as e2:
                     print(f"Error generating PDF (fallback): {e2}")
@@ -685,7 +685,7 @@ class TechnicalReportGenerator:
             }
             self.save_metadata(metadata)
             
-            print(f"✓ BibTeX file generated: {bibtex_path}")
+            print(f"[OK] BibTeX file generated: {bibtex_path}")
             return True
             
         except Exception as e:
@@ -808,7 +808,9 @@ class TechnicalReportGenerator:
                         with open(output_file, 'r', encoding='utf-8') as sf:
                             content = sf.read().strip()
                             if content:
-                                # First convert citations to LaTeX cite commands
+                                # First convert image references to LaTeX figures
+                                content = self._convert_images_to_latex(content)
+                                # Then convert citations to LaTeX cite commands
                                 content = self._convert_citations_to_latex(content)
                                 # Then escape LaTeX special characters (protecting cite commands)
                                 content = self._escape_latex(content, protect_commands=True)
@@ -825,7 +827,7 @@ class TechnicalReportGenerator:
                 # End document
                 f.write(r"\end{document}" + "\n")
             
-            print(f"✓ LaTeX report generated: {latex_path}")
+            print(f"[OK] LaTeX report generated: {latex_path}")
             return True
             
         except Exception as e:
@@ -839,9 +841,29 @@ class TechnicalReportGenerator:
             text: Text to escape
             protect_commands: If True, don't escape text within \\cite{} and other LaTeX commands
         """
+        # First, replace Unicode mathematical symbols with LaTeX equivalents
+        unicode_math = {
+            '≥': r'$\geq$', '≤': r'$\leq$', '≈': r'$\approx$', '≠': r'$\neq$',
+            '×': r'$\times$', '÷': r'$\div$', '±': r'$\pm$', '∞': r'$\infty$',
+            '°': r'$^\circ$',
+        }
+        for char, latex in unicode_math.items():
+            text = text.replace(char, latex)
+        
         if protect_commands:
-            # Temporarily replace ~\cite{...} and \cite{...} with placeholders that won't be escaped
+            # Temporarily replace LaTeX commands with placeholders that won't be escaped
             import re
+            
+            # Protect figure environments (multi-line)
+            figure_pattern = r'(\\begin\{figure\}.*?\\end\{figure\})'
+            figures = re.findall(figure_pattern, text, re.DOTALL)
+            figure_placeholders = {}
+            for i, figure in enumerate(figures):
+                placeholder = f'XXFIGUREMARKER{i}XX'
+                figure_placeholders[placeholder] = figure
+                text = text.replace(figure, placeholder)
+            
+            # Protect citations
             cite_pattern = r'(~?\\cite\{[^}]+\})'
             cites = re.findall(cite_pattern, text)
             cite_placeholders = {}
@@ -849,6 +871,15 @@ class TechnicalReportGenerator:
                 placeholder = f'XXTEMPMARKER{i}XX'
                 cite_placeholders[placeholder] = cite
                 text = text.replace(cite, placeholder)
+            
+            # Protect math
+            math_pattern = r'(\$[^$]+\$)'
+            maths = re.findall(math_pattern, text)
+            math_placeholders = {}
+            for i, math in enumerate(maths):
+                placeholder = f'XXMATHMARKER{i}XX'
+                math_placeholders[placeholder] = math
+                text = text.replace(math, placeholder)
         
         replacements = {
             '\\': r'\textbackslash{}',
@@ -873,9 +904,16 @@ class TechnicalReportGenerator:
                 text = text.replace(char, replacement)
         
         if protect_commands:
-            # Restore \cite{...} commands (they're already properly formatted)
+            # Restore in reverse order
+            # Restore math first
+            for placeholder, math in math_placeholders.items():
+                text = text.replace(placeholder, math)
+            # Restore \cite{...} commands
             for placeholder, cite in cite_placeholders.items():
                 text = text.replace(placeholder, cite)
+            # Restore figures last
+            for placeholder, figure in figure_placeholders.items():
+                text = text.replace(placeholder, figure)
         
         return text
     
@@ -900,6 +938,50 @@ class TechnicalReportGenerator:
         
         for pattern, replacement in citation_map.items():
             text = re.sub(pattern, replacement, text)
+        
+        return text
+    
+    def _convert_images_to_latex(self, text: str) -> str:
+        """Convert image references to LaTeX includegraphics commands.
+        
+        Detects patterns like:
+        - [Image path/to/image.png]
+        - [Image: path/to/image.png]
+        And converts them to LaTeX figure environments.
+        """
+        import re
+        import os
+        
+        # Pattern to match: [Image path] or [Image: path] with optional description after
+        image_pattern = r'\[Image:?\s+([^\]]+?)\]'
+        
+        def replace_image(match):
+            image_path = match.group(1).strip()
+            
+            # Handle Windows paths with backslashes and spaces
+            # Convert to forward slashes for LaTeX
+            latex_path = image_path.replace('\\', '/')
+            
+            # Check if file exists, if not, add a note
+            file_exists = os.path.exists(image_path)
+            
+            # Create figure environment
+            latex_code = '\n\\begin{figure}[h]\n'
+            latex_code += '\\centering\n'
+            
+            if file_exists:
+                # Use includegraphics with max width
+                latex_code += f'\\includegraphics[width=0.8\\textwidth]{{{latex_path}}}\n'
+            else:
+                # Add placeholder text if image not found
+                latex_code += f'\\fbox{{\\parbox{{0.8\\textwidth}}{{\\centering Image not found:\\\\{latex_path}}}}}\n'
+            
+            latex_code += f'\\caption{{Figure from: {os.path.basename(image_path)}}}\n'
+            latex_code += '\\end{figure}\n'
+            
+            return latex_code
+        
+        text = re.sub(image_pattern, replace_image, text)
         
         return text
     
@@ -970,7 +1052,7 @@ class TechnicalReportGenerator:
             
             pdf_path = latex_output_dir / latex_filename.replace('.tex', '.pdf')
             if pdf_path.exists():
-                print(f"✓ LaTeX PDF compiled: {pdf_path}")
+                print(f"[OK] LaTeX PDF compiled: {pdf_path}")
                 return True
             else:
                 print("PDF file not created after compilation.")
@@ -1271,9 +1353,9 @@ Workflow:
     success = generator.run(force_regenerate=args.force, pdf_only=args.pdf_only, concatenate_only=args.concatenate_only, latex=args.latex)
     
     if success:
-        print("\n✓ Report generation completed successfully!")
+        print("\n[OK] Report generation completed successfully!")
     else:
-        print("\n✗ Report generation failed.")
+        print("\n[ERROR] Report generation failed.")
 
 if __name__ == "__main__":
     main()
