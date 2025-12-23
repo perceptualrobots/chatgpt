@@ -26,16 +26,23 @@
   "total_parameters": 335622,
   "total_nodes": 1798,
   "num_episodes": 100,
-  "count_100": 75,
-  "count_neg100": 5,
-  "count_near0": 20
+  "count=100": 75,
+  "count=-100": 5,
+  "count=0": 20
 }
 ```
 
 #### PCT Results
 ```json
 {
-  "model_details": {"total_nodes": 6, "total_parameters": 29},
+  "model_details": {
+    "total_nodes": 6, 
+    "total_parameters": 29,
+    "num_episodes": 100,
+    "count=100": 79,
+    "count=-100": 5,
+    "count=0": 16
+    },
   "image_created": true,
   "image_file": "/tmp/LunarLander_image.png",
   "success": true
