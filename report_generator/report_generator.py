@@ -685,7 +685,11 @@ class TechnicalReportGenerator:
         subtitle = self.get_report_subtitle()
         org = self.get_report_organization()
         
-        latex_path = self.output_dir / output_filename
+        # Create latex_output directory
+        latex_output_dir = self.output_dir / "latex_output"
+        latex_output_dir.mkdir(exist_ok=True)
+        
+        latex_path = latex_output_dir / output_filename
         
         try:
             with open(latex_path, 'w', encoding='utf-8') as f:
@@ -884,24 +888,31 @@ class TechnicalReportGenerator:
         """Compile LaTeX file to PDF using pdflatex."""
         print("Compiling LaTeX to PDF...")
         
-        latex_path = self.output_dir / latex_filename
+        latex_output_dir = self.output_dir / "latex_output"
+        latex_path = latex_output_dir / latex_filename
         
         if not latex_path.exists():
             print(f"LaTeX file {latex_path} not found. Cannot compile.")
             return False
         
+        # Copy references.bib to latex_output if it exists
+        ref_source = self.output_dir / "references.bib"
+        ref_dest = latex_output_dir / "references.bib"
+        if ref_source.exists():
+            import shutil
+            shutil.copy2(ref_source, ref_dest)
+        
         try:
             import subprocess
             
             # Run pdflatex -> bibtex -> pdflatex -> pdflatex for bibliography
+            # Run from latex_output directory so all files stay there
             print(f"  Running pdflatex (pass 1/3)...")
             result = subprocess.run(
-                ['pdflatex', '-interaction=nonstopmode', 
-                 '-output-directory', str(self.output_dir), 
-                 latex_path.name],
+                ['pdflatex', '-interaction=nonstopmode', latex_filename],
                 capture_output=True,
                 text=True,
-                cwd=str(self.output_dir)
+                cwd=str(latex_output_dir)
             )
             
             if result.returncode != 0:
@@ -910,12 +921,12 @@ class TechnicalReportGenerator:
             
             # Run bibtex
             print(f"  Running bibtex...")
-            tex_basename = latex_path.stem
+            tex_basename = Path(latex_filename).stem
             bibtex_result = subprocess.run(
                 ['bibtex', tex_basename],
                 capture_output=True,
                 text=True,
-                cwd=str(self.output_dir)
+                cwd=str(latex_output_dir)
             )
             
             if bibtex_result.returncode != 0:
@@ -926,12 +937,10 @@ class TechnicalReportGenerator:
             for run in range(2, 4):
                 print(f"  Running pdflatex (pass {run}/3)...")
                 result = subprocess.run(
-                    ['pdflatex', '-interaction=nonstopmode', 
-                     '-output-directory', str(self.output_dir), 
-                     latex_path.name],
+                    ['pdflatex', '-interaction=nonstopmode', latex_filename],
                     capture_output=True,
                     text=True,
-                    cwd=str(self.output_dir)
+                    cwd=str(latex_output_dir)
                 )
                 
                 if result.returncode != 0:
@@ -940,7 +949,7 @@ class TechnicalReportGenerator:
                     if run == 3:  # Only fail on final run
                         return False
             
-            pdf_path = self.output_dir / latex_filename.replace('.tex', '.pdf')
+            pdf_path = latex_output_dir / latex_filename.replace('.tex', '.pdf')
             if pdf_path.exists():
                 print(f"✓ LaTeX PDF compiled: {pdf_path}")
                 return True
