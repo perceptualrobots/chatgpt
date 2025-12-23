@@ -42,10 +42,7 @@
     "count=100": 79,
     "count=-100": 5,
     "count=0": 16
-    },
-  "image_created": true,
-  "image_file": "/tmp/LunarLander_image.png",
-  "success": true
+    }
 }
 ```
 

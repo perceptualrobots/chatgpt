@@ -457,7 +457,7 @@ class TechnicalReportGenerator:
         canvas.drawString(x_position, 36, text)
         canvas.restoreState()
     
-    def concatenate_input_files(self, output_filename: str = "all_sections_notes.txt") -> bool:
+    def concatenate_input_files(self, output_filename: str = "all_sections_notes.md") -> bool:
         """Concatenate all input files in the correct order into a single file."""
         print("Concatenating input files...")
         
@@ -473,7 +473,7 @@ class TechnicalReportGenerator:
                 output_file.write("=" * 80 + "\n\n")
                 
                 for section in self.sections:
-                    input_file = self.input_dir / f"{section}.txt"
+                    input_file = self.input_dir / f"{section}.md"
                     
                     if input_file.exists():
                         # Write section header
@@ -673,6 +673,12 @@ class TechnicalReportGenerator:
             
             bibtex_content = response.choices[0].message.content
             
+            # Clean markdown code fences if present
+            import re
+            bibtex_content = re.sub(r'^```+bibtex\s*', '', bibtex_content, flags=re.MULTILINE)
+            bibtex_content = re.sub(r'^```+\s*$', '', bibtex_content, flags=re.MULTILINE)
+            bibtex_content = bibtex_content.strip()
+            
             with open(bibtex_path, 'w', encoding='utf-8') as f:
                 f.write(bibtex_content)
             
@@ -808,7 +814,9 @@ class TechnicalReportGenerator:
                         with open(output_file, 'r', encoding='utf-8') as sf:
                             content = sf.read().strip()
                             if content:
-                                # First convert image references to LaTeX figures
+                                # First convert tables to LaTeX
+                                content = self._convert_tables_to_latex(content)
+                                # Then convert image references to LaTeX figures
                                 content = self._convert_images_to_latex(content)
                                 # Then convert citations to LaTeX cite commands
                                 content = self._convert_citations_to_latex(content)
@@ -853,6 +861,15 @@ class TechnicalReportGenerator:
         if protect_commands:
             # Temporarily replace LaTeX commands with placeholders that won't be escaped
             import re
+            
+            # Protect table environments (multi-line)
+            table_pattern = r'(\\begin\{table\}.*?\\end\{table\})'
+            tables = re.findall(table_pattern, text, re.DOTALL)
+            table_placeholders = {}
+            for i, table in enumerate(tables):
+                placeholder = f'XXTABLEMARKER{i}XX'
+                table_placeholders[placeholder] = table
+                text = text.replace(table, placeholder)
             
             # Protect figure environments (multi-line)
             figure_pattern = r'(\\begin\{figure\}.*?\\end\{figure\})'
@@ -911,9 +928,12 @@ class TechnicalReportGenerator:
             # Restore \cite{...} commands
             for placeholder, cite in cite_placeholders.items():
                 text = text.replace(placeholder, cite)
-            # Restore figures last
+            # Restore figures
             for placeholder, figure in figure_placeholders.items():
                 text = text.replace(placeholder, figure)
+            # Restore tables last
+            for placeholder, table in table_placeholders.items():
+                text = text.replace(placeholder, table)
         
         return text
     
@@ -932,7 +952,7 @@ class TechnicalReportGenerator:
             r'\(Young, 2020\)': r'~\\cite{young2020}',
             r'\(Young, 2025\)': r'~\\cite{young2025}',
             r'\(timurgepard, 2025\)': r'~\\cite{timurgepard2025}',
-            # Generic patterns
+            # Keep generic placeholders as text for now
             r'\(Author, Year\)': '',  # Remove placeholder citations
         }
         
@@ -982,6 +1002,71 @@ class TechnicalReportGenerator:
             return latex_code
         
         text = re.sub(image_pattern, replace_image, text)
+        
+        return text
+    
+    def _convert_tables_to_latex(self, text: str) -> str:
+        """Convert markdown tables to LaTeX table environments.
+        
+        Detects markdown tables in the format:
+        | Header 1 | Header 2 |
+        |----------|----------|
+        | Cell 1   | Cell 2   |
+        """
+        import re
+        
+        # Pattern to match markdown tables (multiline)
+        # Match: header row, separator row, and data rows
+        table_pattern = r'(\|[^\n]+\|\n\|[-:\s|]+\|\n(?:\|[^\n]+\|\n?)+)'
+        
+        def replace_table(match):
+            table_text = match.group(1).strip()
+            lines = table_text.split('\n')
+            
+            if len(lines) < 2:
+                return table_text  # Not a valid table
+            
+            # Parse header
+            header_line = lines[0]
+            headers = [cell.strip() for cell in header_line.split('|')[1:-1]]
+            num_cols = len(headers)
+            
+            # Skip separator line (lines[1])
+            
+            # Parse data rows
+            data_rows = []
+            for line in lines[2:]:
+                if line.strip():
+                    cells = [cell.strip() for cell in line.split('|')[1:-1]]
+                    if len(cells) == num_cols:
+                        data_rows.append(cells)
+            
+            # Build LaTeX table with better formatting
+            latex_code = '\n\\begin{table}[h]\n'
+            latex_code += '\\centering\n'
+            latex_code += '\\small\n'  # Use smaller font for better fit
+            # Use p{width} columns for text wrapping instead of c for centered
+            # First column left-aligned, rest centered with wrapping
+            col_spec = '|l|' + 'c|' * (num_cols - 1)
+            latex_code += f'\\begin{{tabular}}{{{col_spec}}}\n'
+            latex_code += '\\hline\n'
+            
+            # Add header with bold font
+            header_formatted = ' & '.join([f'\\textbf{{{h}}}' for h in headers])
+            latex_code += header_formatted + ' \\\\\n'
+            latex_code += '\\hline\n'
+            
+            # Add data rows
+            for row in data_rows:
+                latex_code += ' & '.join(row) + ' \\\\\n'
+            
+            latex_code += '\\hline\n'
+            latex_code += '\\end{tabular}\n'
+            latex_code += '\\end{table}\n'
+            
+            return latex_code
+        
+        text = re.sub(table_pattern, replace_table, text, flags=re.MULTILINE)
         
         return text
     
