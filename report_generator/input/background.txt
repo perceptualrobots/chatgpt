@@ -1,7 +1,0 @@
-Background information to cover:
-- Perceptual Control Theory fundamentals - simple and powerful hierarchical architecure, self-correcting feedback loop, adapts to environment (Powers, 1973)
-- Evolutionary algorithms for hierarchy optimization
-- Reinforcement learning theory and deep Q-networks
-- Environment characteristics and challenges - https://gymnasium.farama.org/environments/box2d/lunar_lander/
-- Previous comparative studies limitations
-- Control system evaluation metrics

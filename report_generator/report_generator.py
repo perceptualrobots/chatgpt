@@ -129,8 +129,8 @@ class TechnicalReportGenerator:
         self.output_dir.mkdir(exist_ok=True)
         
     def load_title_info(self):
-        """Load title information from title.txt if available."""
-        title_file = self.input_dir / "title.txt"
+        """Load title information from title.md if available."""
+        title_file = self.input_dir / "title.md"
         if title_file.exists():
             try:
                 with open(title_file, 'r', encoding='utf-8') as f:
@@ -184,7 +184,7 @@ class TechnicalReportGenerator:
         1. Output file doesn't exist
         2. Input file has changed since last generation
         """
-        input_file = self.input_dir / f"{section}.txt"
+        input_file = self.input_dir / f"{section}.md"
         output_file = self.output_dir / f"{section}.txt"
         
         # If input file doesn't exist, skip this section
@@ -249,7 +249,7 @@ class TechnicalReportGenerator:
     
     def generate_section_content(self, section: str) -> Optional[str]:
         """Generate content for a specific section using OpenAI."""
-        input_file = self.input_dir / f"{section}.txt"
+        input_file = self.input_dir / f"{section}.md"
         
         if not input_file.exists():
             print(f"Input file {input_file} not found. Skipping {section}.")
@@ -627,14 +627,24 @@ class TechnicalReportGenerator:
     
     def generate_bibtex(self, output_filename: str = "references.bib") -> bool:
         """Generate BibTeX file from references section."""
-        print("Generating BibTeX file...")
-        
         references_file = self.output_dir / "references.txt"
         if not references_file.exists():
             print(f"References file {references_file} not found.")
             return False
         
         bibtex_path = self.output_dir / output_filename
+        
+        # Check if BibTeX file already exists and references.txt hasn't changed
+        if bibtex_path.exists():
+            current_hash = self.get_file_hash(references_file)
+            metadata = self.load_metadata()
+            stored_hash = metadata.get("bibtex", {}).get("input_hash", "")
+            
+            if current_hash == stored_hash:
+                print(f"BibTeX file up to date (references.txt unchanged). Skipping regeneration.")
+                return True
+        
+        print("Generating BibTeX file...")
         
         try:
             with open(references_file, 'r', encoding='utf-8') as f:
@@ -665,6 +675,15 @@ class TechnicalReportGenerator:
             
             with open(bibtex_path, 'w', encoding='utf-8') as f:
                 f.write(bibtex_content)
+            
+            # Update metadata to track references.txt hash
+            metadata = self.load_metadata()
+            metadata["bibtex"] = {
+                "input_hash": self.get_file_hash(references_file),
+                "generated_at": datetime.now().isoformat(),
+                "output_file": str(bibtex_path)
+            }
+            self.save_metadata(metadata)
             
             print(f"✓ BibTeX file generated: {bibtex_path}")
             return True
@@ -972,7 +991,7 @@ class TechnicalReportGenerator:
         print(f"Environment: {self.environment}")
         print("=" * 50)
         
-        # Load title information from title.txt
+        # Load title information from title.md
         self.load_title_info()
         
         # If only concatenating input files
@@ -1032,7 +1051,8 @@ class TechnicalReportGenerator:
 def create_sample_input_files(input_dir: Path):
     """Create sample input files for demonstration."""
     sample_content = {
-        "abstract": """
+        "abstract": """# Abstract Notes
+
 Abstract notes (this will be auto-generated from other sections):
 - Research objective: Compare PCT vs RL control systems
 - Methodology: Environment testing and evaluation
@@ -1041,8 +1061,8 @@ Abstract notes (this will be auto-generated from other sections):
 Note: This section will be automatically generated from your other sections.
 """,
         
-        "introduction": """
-Introduction notes:
+        "introduction": """# Introduction Notes
+
 - Control systems critical for autonomous agents
 - Traditional control vs modern AI approaches
 - PCT offers biological inspiration and interpretability, a realistic rationale and a simpler architecture and computational footprint.
@@ -1052,7 +1072,8 @@ Introduction notes:
 - Specific environment provides consistent evaluation platform
 """,
         
-        "background": """
+        "background": """# Background Notes
+
 Background information to cover:
 - Perceptual Control Theory fundamentals - elegant and powerful hierarchical architecure, self-correcting feedback loop, adapts to environment (Powers, 1973)
 - Evolutionary algorithms for hierarchy optimization
@@ -1062,7 +1083,8 @@ Background information to cover:
 - Control system evaluation metrics
 """,
         
-        "methodology": """
+        "methodology": """# Methodology Notes
+
 Methodology details:
 - Environment: Specify your target environment 
 - PCT hierarchy: optimally generated by evolutionary algorithm, guided by rewards and specific fitness function. 
@@ -1073,7 +1095,8 @@ Methodology details:
 - Hardware: spec of this machine
 """,
         
-        "experimental_results": """
+        "experimental_results": """# Experimental Results Notes
+
 Results to present:
 - Performance comparison across 100 episodes
 - Results summary table
@@ -1085,7 +1108,8 @@ Results to present:
 - Key findings and insights
 """,
         
-        "discussion": """
+        "discussion": """# Discussion Notes
+
 Discussion points:
 - PCT advantages: interpretability (break down into control units), biological plausibility, psychologically credible, smaller computational footprint
 - RL advantages: sample efficiency, generalization, scalability
@@ -1096,7 +1120,8 @@ Discussion points:
 - Unexpected findings and their explanations
 """,
         
-        "recommendations_future_work": """
+        "recommendations_future_work": """# Recommendations & Future Work Notes
+
 Recommendations and future work:
 - Hybrid approaches combining PCT and RL
 - Testing on more complex and realistic world environments
@@ -1106,7 +1131,8 @@ Recommendations and future work:
 
 """,
         
-        "references": """
+        "references": """# References Notes
+
 Key references to include:
 - Powers, W. T., Clark, R., and McFarland, R. (1960). A general feedback theory of human behavior: Part i. Perceptual and motor skills, 11(1):71–88.
 - Powers, W. T. (1973). Behavior: The control of perception. Aldine de Gruyter.
@@ -1119,7 +1145,7 @@ Key references to include:
     }
     
     for section, content in sample_content.items():
-        filepath = input_dir / f"{section}.txt"
+        filepath = input_dir / f"{section}.md"
         if not filepath.exists():
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(content.strip())

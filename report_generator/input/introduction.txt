@@ -1,7 +1,0 @@
-Introduction notes:
-- Control systems critical for autonomous agents
-- Traditional control vs modern AI approaches
-- PCT offers biological inspiration and interpretability
-- RL provides data-driven learning capabilities
-- Research gap: direct comparison in standardized environment
-- Specific environment provides consistent evaluation platform

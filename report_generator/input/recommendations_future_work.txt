@@ -1,6 +1,0 @@
-Recommendations and future work:
-- Hybrid approaches combining PCT and RL
-- Testing on more complex and realistic world environments
-- Real-world robotics applications
-- Computational optimization strategies - implement EPCT in deep learning framework, parallel processing and GPUs
-- Human-interpretable AI systems

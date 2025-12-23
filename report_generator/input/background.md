@@ -1,0 +1,20 @@
+# Background Notes
+
+## Topics to Cover
+
+### Perceptual Control Theory
+- **PCT fundamentals**: Simple and powerful hierarchical architecture
+  - Self-correcting feedback loop
+  - Adapts to environment (Powers, 1973)
+
+### Optimization & Learning
+- **Evolutionary algorithms** for hierarchy optimization
+- **Reinforcement learning** theory and deep Q-networks
+
+### Environment
+- **Characteristics and challenges**
+- Reference: [Lunar Lander Environment](https://gymnasium.farama.org/environments/box2d/lunar_lander/)
+
+### Related Work
+- Previous comparative studies **limitations**
+- Control system **evaluation metrics**
