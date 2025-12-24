@@ -1,6 +1,6 @@
 # Technical Report - PCT Applied (with RL Comparison)
-# Generated on: December 23, 2025 at 17:52:08
-# Environment: OpenAI Gym
+# Generated on: December 24, 2025 at 14:24:14
+# Environment: Lunar Lander
 # Focus: PCT primary; RL comparator baseline
 ================================================================================
 
@@ -39,7 +39,7 @@
 ### Perceptual Control Theory
 - **PCT fundamentals**: Simple and powerful hierarchical architecture
   - Self-correcting feedback loop
-  - Adapts to environment (Powers, 1973)
+  - Adapts to environment \cite{powers1973} 
 
 ### Optimization & Learning
 - **Evolutionary algorithms** for hierarchy optimization
@@ -70,7 +70,7 @@
 
 ## RL Baseline
 - **RL approach**: Simphony taken from OpenAI Gym leaderboard
-  - *TODO*: Include reference
+  - \cite{timurgepard2024}
 
 ## Evaluation
 - **Metrics**:
@@ -93,14 +93,13 @@
 ## Performance Data
 
 ### Visual Media
-- **Video** (Young, R., 2025): Shows random controller, RL (Symphony) controller, and evolved PCT controller
-- **Image**: `G:\My Drive\PR\reports\LunarLander\RLvPCT-toscale.png`
-  - RL and PCT networks drawn to scale
-  - PCT controller barely visible in comparison
-- **Image**: `G:\My Drive\PR\reports\LunarLander\PCT.png`
-  - PCT network: 1 level with 6 control units
-  - 6 perceptions simultaneously controlled
-  - Outputs combine to form environment actions
+- **Video** \cite{young2025} : Shows random controller, RL (Symphony) controller, and evolved PCT controller
+- **Image**: `RLvPCT-toscale.png`
+  - Caption: The RL and PCT networks displayed to scale. The PCT controller is barely visible in comparison.
+- **Image**: `PCT.png`
+  - Caption: PCT network: 1 level with 6 control units.
+  - 6 perceptions simultaneously controlled.
+  - The Outputs combine to form environment actions
 
 ### Quantitative Results
 
@@ -130,8 +129,8 @@
     "total_parameters": 29,
     "num_episodes": 100,
     "count=100": 79,
-    "count=-100": 5,
-    "count=0": 16
+    "count=-100": 8,
+    "count=0": 13
     }
 }
 ```
@@ -222,7 +221,7 @@
 - **Young, R. (2025)** Lunar Lander PCT v. RL  
   [https://www.youtube.com/watch?v=sxW8pNze1Ro](https://www.youtube.com/watch?v=sxW8pNze1Ro)
 
-- **timurgepard (2025)** Implementation of Lunar Lander with Symphony  
+- **Timurgepard (2024)** Implementation of Lunar Lander with Symphony  
   - GitHub: [https://github.com/timurgepard/Simphony](https://github.com/timurgepard/Simphony)  
   - Video: [https://www.youtube.com/watch?v=7RA7GqHfdb0](https://www.youtube.com/watch?v=7RA7GqHfdb0)
 
