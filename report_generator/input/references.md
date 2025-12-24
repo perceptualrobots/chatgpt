@@ -23,6 +23,6 @@
 - **Young, R. (2025)** Lunar Lander PCT v. RL  
   [https://www.youtube.com/watch?v=sxW8pNze1Ro](https://www.youtube.com/watch?v=sxW8pNze1Ro)
 
-- **timurgepard (2025)** Implementation of Lunar Lander with Symphony  
+- **Timurgepard (2024)** Implementation of Lunar Lander with Symphony  
   - GitHub: [https://github.com/timurgepard/Simphony](https://github.com/timurgepard/Simphony)  
   - Video: [https://www.youtube.com/watch?v=7RA7GqHfdb0](https://www.youtube.com/watch?v=7RA7GqHfdb0)

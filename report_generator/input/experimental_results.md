@@ -3,14 +3,13 @@
 ## Performance Data
 
 ### Visual Media
-- **Video** (Young, R., 2025): Shows random controller, RL (Symphony) controller, and evolved PCT controller
-- **Image**: `G:\My Drive\PR\reports\LunarLander\RLvPCT-toscale.png`
-  - RL and PCT networks drawn to scale
-  - PCT controller barely visible in comparison
-- **Image**: `G:\My Drive\PR\reports\LunarLander\PCT.png`
-  - PCT network: 1 level with 6 control units
-  - 6 perceptions simultaneously controlled
-  - Outputs combine to form environment actions
+- **Video** \cite{young2025} : Shows random controller, RL (Symphony) controller, and evolved PCT controller
+- **Image**: `RLvPCT-toscale.png`
+  - Caption: The RL and PCT networks displayed to scale. The PCT controller is barely visible in comparison.
+- **Image**: `PCT.png`
+  - Caption: PCT network: 1 level with 6 control units.
+  - 6 perceptions simultaneously controlled.
+  - The Outputs combine to form environment actions
 
 ### Quantitative Results
 
@@ -40,8 +39,8 @@
     "total_parameters": 29,
     "num_episodes": 100,
     "count=100": 79,
-    "count=-100": 5,
-    "count=0": 16
+    "count=-100": 8,
+    "count=0": 13
     }
 }
 ```
