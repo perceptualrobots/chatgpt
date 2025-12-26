@@ -1088,6 +1088,15 @@ class TechnicalReportGenerator:
             import shutil
             shutil.copy2(ref_source, ref_dest)
         
+        # Copy image files from input to latex_output
+        import shutil
+        image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.pdf', '.eps']
+        for image_file in self.input_dir.iterdir():
+            if image_file.is_file() and image_file.suffix.lower() in image_extensions:
+                dest_file = latex_output_dir / image_file.name
+                shutil.copy2(image_file, dest_file)
+                print(f"  Copied image: {image_file.name}")
+        
         try:
             import subprocess
             

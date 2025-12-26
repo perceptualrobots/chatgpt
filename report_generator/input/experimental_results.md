@@ -3,7 +3,7 @@
 ## Performance Data
 
 ### Visual Media
-- **Video** \cite{young2025} : Shows random controller, RL (Symphony) controller, and evolved PCT controller
+- **Video** \citep{young2025} : Shows random controller, RL (Symphony) controller, and evolved PCT controller
 - **Image**: `RLvPCT-toscale.png`
   - Caption: The RL and PCT networks displayed to scale. The PCT controller is barely visible in comparison.
 - **Image**: `PCT.png`
@@ -15,6 +15,7 @@
 
 **Performance comparison**: 100 episodes
 
+Results table from this JSON data:
 #### RL Results (Symphony)
 ```json
 {
@@ -30,6 +31,7 @@
   "count=0": 20
 }
 ```
+
 
 #### PCT Results
 ```json
@@ -49,7 +51,7 @@
 - Results summary table
 - **Results reproduction**:
   - *TODO*: PCT example, link to code
-  - Simphony model - *include reference*
+  - Simphony model - \citep{timurgepard2024github,timurgepard2024youtube}
 - Videos
 - Key findings and insights
 

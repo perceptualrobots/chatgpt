@@ -1,5 +1,5 @@
 # Technical Report - PCT Applied (with RL Comparison)
-# Generated on: December 24, 2025 at 14:24:14
+# Generated on: December 26, 2025 at 11:50:28
 # Environment: Lunar Lander
 # Focus: PCT primary; RL comparator baseline
 ================================================================================
@@ -93,7 +93,7 @@
 ## Performance Data
 
 ### Visual Media
-- **Video** \cite{young2025} : Shows random controller, RL (Symphony) controller, and evolved PCT controller
+- **Video** \citep{young2025} : Shows random controller, RL (Symphony) controller, and evolved PCT controller
 - **Image**: `RLvPCT-toscale.png`
   - Caption: The RL and PCT networks displayed to scale. The PCT controller is barely visible in comparison.
 - **Image**: `PCT.png`
@@ -120,6 +120,8 @@
   "count=0": 20
 }
 ```
+\citep{timurgepard2024github,timurgepard2024youtube}
+
 
 #### PCT Results
 ```json
