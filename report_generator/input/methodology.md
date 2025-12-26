@@ -10,7 +10,7 @@
 
 ## RL Baseline
 - **RL approach**: Simphony taken from OpenAI Gym leaderboard
-  - \cite{timurgepard2024}
+  - \citep{ishuov2024}
 
 ## Evaluation
 - **Metrics**:

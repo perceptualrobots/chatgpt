@@ -5,7 +5,7 @@
 ### Perceptual Control Theory
 - **PCT fundamentals**: Simple and powerful hierarchical architecture
   - Self-correcting feedback loop
-  - Adapts to environment \cite{powers1973} 
+  - Adapts to environment \citep{powers1973} 
 
 ### Optimization & Learning
 - **Evolutionary algorithms** for hierarchy optimization

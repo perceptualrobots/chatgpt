@@ -223,6 +223,24 @@ class TechnicalReportGenerator:
         
         IMPORTANT: Do NOT include the section title or any heading in your response. Start directly with the content paragraphs.
         The section title will be added automatically by the document generator.
+        
+        CITATION HANDLING: If the notes contain LaTeX citation commands like \\cite{{...}}, \\citep{{...}}, or \\citet{{...}}, 
+        these MUST be included in your output text where appropriate. These are LaTeX commands that will be processed later.
+        When you write about videos, results, or any referenced work that has a citation command in the notes, 
+        include that citation command in your narrative text. For example, if notes mention "Video \\citep{{young2025}}", 
+        you should write something like "as demonstrated in the video \\citep{{young2025}}" or "Video demonstrations \\citep{{young2025}} show..."
+        
+        IMAGE HANDLING: When referencing images, use the format: [Image: filename.png (Caption text goes here)]
+        If the notes provide image references with captions, preserve the filename and include the caption in parentheses.
+        Do NOT add quotes around filenames.
+        If the notes specify a width parameter like [width=1.0\textwidth], include it immediately before the caption:
+        [Image: filename.png [width=1.0\textwidth] (Caption text)]
+        IMPORTANT: Include ALL images mentioned in the notes in your output, in the same order they appear.
+        Do not omit any images or videos mentioned in the source notes.
+        
+        TABLE HANDLING: If the notes contain Markdown tables (with pipes | and dashes), preserve them EXACTLY in your output.
+        Do NOT convert tables to prose or replace them with placeholders like [Table would be inserted here].
+        Keep the complete table structure with all rows and columns intact.
         """
 
         section_specific_prompts = {
@@ -232,7 +250,7 @@ class TechnicalReportGenerator:
 
             "methodology": f"Describe the methodology with PCT as the primary focus: the {self.environment} setup, PCT hierarchy design and training (e.g., evolutionary algorithm parameters), followed by a concise RL baseline configuration, evaluation metrics, and procedures.",
 
-            "experimental_results": f"Present results primarily for the PCT controller in the {self.environment} environment, including performance, stability, and interpretability aspects; then compare against the RL baseline. Include descriptions of where figures and tables would be placed (e.g., '[Figure 1: Performance comparison graph would be inserted here]').",
+            "experimental_results": f"Present results primarily for the PCT controller in the {self.environment} environment, including performance, stability, and interpretability aspects; then compare against the RL baseline. CRITICAL: When the notes mention images, tables, or videos with specific ordering (first, second, third), you MUST reference them in your narrative in EXACTLY that order. Do not rearrange visual elements for narrative flow. If the notes show Image A then Image B, your text must reference Image A before Image B.",
 
             "discussion": "Analyze and interpret results with a PCT-first lens: strengths, limitations, implications, and design insights of PCT; then contrast with RL to highlight advantages/trade-offs.",
 
@@ -880,8 +898,8 @@ class TechnicalReportGenerator:
                 figure_placeholders[placeholder] = figure
                 text = text.replace(figure, placeholder)
             
-            # Protect citations
-            cite_pattern = r'(~?\\cite\{[^}]+\})'
+            # Protect citations (\cite, \citep, \citet, etc.)
+            cite_pattern = r'(~?\\cite[pt]?\{[^}]+\})'
             cites = re.findall(cite_pattern, text)
             cite_placeholders = {}
             for i, cite in enumerate(cites):
@@ -967,41 +985,107 @@ class TechnicalReportGenerator:
         Detects patterns like:
         - [Image path/to/image.png]
         - [Image: path/to/image.png]
+        - **Image**: `path/to/image.png`
         And converts them to LaTeX figure environments.
         """
         import re
         import os
         
-        # Pattern to match: [Image path] or [Image: path] with optional description after
-        image_pattern = r'\[Image:?\s+([^\]]+?)\]'
+        # Pattern 1: [Image: path] or [Image: path [width=...] (caption)]
+        image_pattern1 = r'\[Image:\s+([^\s\[\(]+)(?:\s+\[([^\]]+)\])?(?:\s+\(([^\)]+)\))?\]'
+        
+        # Pattern 2: **Image**: `filename.png` with optional width and caption on next lines
+        # Format: - **Image**: `file.png`
+        #         - [width=1.0\textwidth]
+        #         - Caption: text
+        image_pattern2 = r'-\s+\*\*Image\*\*:\s+`([^`]+)`(?:\s*\n\s*-\s+\[([^\]]+)\])?(?:\s*\n\s*-\s+Caption:\s*([^\n]+))?'
         
         def replace_image(match):
             image_path = match.group(1).strip()
+            width_spec = match.group(2).strip() if len(match.groups()) > 1 and match.group(2) else None
+            caption = match.group(3).strip() if len(match.groups()) > 2 and match.group(3) else None
+            
+            # Strip quotes and backticks from image path if present
+            image_path = image_path.strip('\'"` ')
             
             # Handle Windows paths with backslashes and spaces
             # Convert to forward slashes for LaTeX
             latex_path = image_path.replace('\\', '/')
             
-            # Check if file exists, if not, add a note
-            file_exists = os.path.exists(image_path)
+            # Parse width specification (default to 0.8\textwidth)
+            if width_spec:
+                width_param = width_spec
+            else:
+                width_param = 'width=0.8\\textwidth'
+            
+            # Check if file exists in input directory
+            input_file_path = self.input_dir / image_path
+            file_exists = input_file_path.exists()
             
             # Create figure environment
             latex_code = '\n\\begin{figure}[h]\n'
             latex_code += '\\centering\n'
             
             if file_exists:
-                # Use includegraphics with max width
-                latex_code += f'\\includegraphics[width=0.8\\textwidth]{{{latex_path}}}\n'
+                # Use includegraphics with specified width
+                latex_code += f'\\includegraphics[{width_param}]{{{latex_path}}}\n'
             else:
                 # Add placeholder text if image not found
                 latex_code += f'\\fbox{{\\parbox{{0.8\\textwidth}}{{\\centering Image not found:\\\\{latex_path}}}}}\n'
             
-            latex_code += f'\\caption{{Figure from: {os.path.basename(image_path)}}}\n'
+            # Use provided caption or default
+            if caption:
+                latex_code += f'\\caption{{{caption}}}\n'
+            else:
+                latex_code += f'\\caption{{Figure from: {os.path.basename(image_path)}}}\n'
             latex_code += '\\end{figure}\n'
             
             return latex_code
         
-        text = re.sub(image_pattern, replace_image, text)
+        # Replace Pattern 1: [Image: path]
+        text = re.sub(image_pattern1, replace_image, text)
+        
+        # Replace Pattern 2: **Image**: `path` with optional width and caption support
+        def replace_image_with_caption(match):
+            image_path = match.group(1).strip()
+            width_spec = match.group(2).strip() if match.group(2) else None
+            caption = match.group(3).strip() if match.group(3) else None
+            
+            # Strip quotes and backticks from image path if present
+            image_path = image_path.strip('\'"` ')
+            
+            # Handle Windows paths with backslashes and spaces
+            latex_path = image_path.replace('\\', '/')
+            
+            # Parse width specification (default to 0.8\textwidth)
+            if width_spec:
+                # Width spec should be like "width=1.0\textwidth"
+                width_param = width_spec
+            else:
+                width_param = 'width=0.8\\textwidth'
+            
+            # Check if file exists in input directory
+            input_file_path = self.input_dir / image_path
+            file_exists = input_file_path.exists()
+            
+            # Create figure environment
+            latex_code = '\n\\begin{figure}[h]\n'
+            latex_code += '\\centering\n'
+            
+            if file_exists:
+                latex_code += f'\\includegraphics[{width_param}]{{{latex_path}}}\n'
+            else:
+                latex_code += f'\\fbox{{\\parbox{{0.8\\textwidth}}{{\\centering Image not found:\\\\{latex_path}}}}}\n'
+            
+            if caption:
+                latex_code += f'\\caption{{{caption}}}\n'
+            else:
+                latex_code += f'\\caption{{Figure: {os.path.basename(image_path)}}}\n'
+            latex_code += '\\end{figure}\n'
+            
+            return latex_code
+        
+        text = re.sub(image_pattern2, replace_image_with_caption, text, flags=re.MULTILINE)
         
         return text
     
@@ -1012,15 +1096,29 @@ class TechnicalReportGenerator:
         | Header 1 | Header 2 |
         |----------|----------|
         | Cell 1   | Cell 2   |
+        
+        Also detects captions in these formats:
+        - Before table: **Table N:** Caption text
+        - Before table: - Caption: Caption text
+        - After table: Table: Caption text
         """
         import re
         
-        # Pattern to match markdown tables (multiline)
-        # Match: header row, separator row, and data rows
-        table_pattern = r'(\|[^\n]+\|\n\|[-:\s|]+\|\n(?:\|[^\n]+\|\n?)+)'
+        # Pattern to match optional caption before table + table + optional caption after
+        # Caption before: **Table N:** or - Caption:
+        # Caption after: Table: or Caption:
+        full_table_pattern = r'(?:(?:\*\*Table\s+\d+:\*\*|(?:^|\n)-\s*Caption:)\s*([^\n]+)\n+)?' \
+                            r'(\|[^\n]+\|\n\|[-:\s|]+\|\n(?:\|[^\n]+\|\n?)+)' \
+                            r'(?:\n+(?:Table:|Caption:)\s*([^\n]+))?'
         
         def replace_table(match):
-            table_text = match.group(1).strip()
+            caption_before = match.group(1)
+            table_text = match.group(2).strip()
+            caption_after = match.group(3)
+            
+            # Use whichever caption exists (prefer before over after)
+            caption = caption_before if caption_before else caption_after
+            
             lines = table_text.split('\n')
             
             if len(lines) < 2:
@@ -1062,11 +1160,16 @@ class TechnicalReportGenerator:
             
             latex_code += '\\hline\n'
             latex_code += '\\end{tabular}\n'
+            
+            # Add caption if present
+            if caption:
+                latex_code += f'\\caption{{{caption.strip()}}}\n'
+            
             latex_code += '\\end{table}\n'
             
             return latex_code
         
-        text = re.sub(table_pattern, replace_table, text, flags=re.MULTILINE)
+        text = re.sub(full_table_pattern, replace_table, text, flags=re.MULTILINE)
         
         return text
     
@@ -1161,7 +1264,7 @@ class TechnicalReportGenerator:
             print(f"Error compiling LaTeX: {e}")
             return False
     
-    def run(self, force_regenerate: bool = False, pdf_only: bool = False, concatenate_only: bool = False, latex: bool = False) -> bool:
+    def run(self, force_regenerate: bool = False, pdf_only: bool = False, concatenate_only: bool = False, latex: bool = False, compile_latex_only: bool = False) -> bool:
         """Main execution method."""
         print("Technical Report Generator")
         print(f"Environment: {self.environment}")
@@ -1169,6 +1272,10 @@ class TechnicalReportGenerator:
         
         # Load title information from title.md
         self.load_title_info()
+        
+        # If only compiling LaTeX to PDF
+        if compile_latex_only:
+            return self.compile_latex_to_pdf()
         
         # If only concatenating input files
         if concatenate_only:
@@ -1407,6 +1514,7 @@ Examples:
   %(prog)s --force                            Force regenerate all sections
   %(prog)s --pdf-only                         Generate PDF from existing outputs
   %(prog)s --latex                            Generate LaTeX and compile to PDF
+  %(prog)s --compile-latex-only               Compile existing LaTeX to PDF only
   %(prog)s --concatenate-only                 Only concatenate input files
   %(prog)s --environment "Lunar Lander"       Specify environment name
   %(prog)s --input-dir notes --output-dir reports    Use custom directories
@@ -1431,6 +1539,8 @@ Workflow:
                         help="Only generate PDF from existing output files (no AI generation)")
     parser.add_argument("--latex", action="store_true",
                         help="Generate LaTeX source file and compile to PDF (requires pdflatex)")
+    parser.add_argument("--compile-latex-only", action="store_true",
+                        help="Only compile existing LaTeX file to PDF (no generation, requires pdflatex)")
     parser.add_argument("--concatenate-only", action="store_true",
                         help="Only concatenate input files into a single file (no AI generation or PDF)")
     parser.add_argument("--create-samples", action="store_true", 
@@ -1444,7 +1554,7 @@ Workflow:
         create_sample_input_files(generator.input_dir)
         return
     
-    success = generator.run(force_regenerate=args.force, pdf_only=args.pdf_only, concatenate_only=args.concatenate_only, latex=args.latex)
+    success = generator.run(force_regenerate=args.force, pdf_only=args.pdf_only, concatenate_only=args.concatenate_only, latex=args.latex, compile_latex_only=args.compile_latex_only)
     
     if success:
         print("\n[OK] Report generation completed successfully!")
