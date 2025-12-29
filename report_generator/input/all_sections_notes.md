@@ -1,5 +1,5 @@
 # Technical Report - PCT Applied (with RL Comparison)
-# Generated on: December 29, 2025 at 19:54:05
+# Generated on: December 29, 2025 at 20:12:37
 # Environment: Lunar Lander
 # Focus: PCT primary; RL comparator baseline
 ================================================================================
@@ -210,8 +210,7 @@ Table: Comparative results for RL and PCT. A score of 100 indicates a successful
   [https://www.youtube.com/watch?v=sxW8pNze1Ro](https://www.youtube.com/watch?v=sxW8pNze1Ro)
 
 - **Ishuov, Timur  (2024)** Implementation of Lunar Lander with Symphony  
-  - GitHub: [https://github.com/timurgepard/Simphony](https://github.com/timurgepard/Simphony)  
-  - Video: [https://www.youtube.com/watch?v=7RA7GqHfdb0](https://www.youtube.com/watch?v=7RA7GqHfdb0)
+  - GitHub: [https://github.com/timurgepard/Simphony](https://github.com/timurgepard/Simphony)
 
 ================================================================================
 

@@ -25,4 +25,3 @@
 
 - **Ishuov, Timur  (2024)** Implementation of Lunar Lander with Symphony  
   - GitHub: [https://github.com/timurgepard/Simphony](https://github.com/timurgepard/Simphony)  
-  - Video: [https://www.youtube.com/watch?v=7RA7GqHfdb0](https://www.youtube.com/watch?v=7RA7GqHfdb0)
