@@ -1,5 +1,5 @@
 # Technical Report - PCT Applied (with RL Comparison)
-# Generated on: December 26, 2025 at 18:32:06
+# Generated on: December 29, 2025 at 19:54:05
 # Environment: Lunar Lander
 # Focus: PCT primary; RL comparator baseline
 ================================================================================
