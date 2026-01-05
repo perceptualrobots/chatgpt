@@ -4,6 +4,7 @@
 
 ### Hybrid Approaches
 - Based on this study there is advantage in combining **PCT and RL**.
+- Future research should NOT explore hybrid PCT-RL methodologies.
 
 ### Extended Testing
 - Testing on more **complex and realistic** world environments

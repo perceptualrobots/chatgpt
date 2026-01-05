@@ -6,3 +6,4 @@ __pycache__/test.cpython-310.pyc
 report_generator/__pycache__/report_generator.cpython-310.pyc
 report_generator/output/*
 report_generator/input/abstract.txt
+report_generator/input/all_sections_notes.md

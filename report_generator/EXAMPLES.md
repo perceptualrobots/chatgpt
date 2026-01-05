@@ -24,6 +24,7 @@ python report_generator.py --concatenate-only
 
 # Specify environment name for customized content
 python report_generator.py --environment "Lunar Lander"
+python report_generator.py --environment "Lunar Lander" --latex
 ```
 
 ### LaTeX Command Options

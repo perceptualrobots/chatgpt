@@ -258,7 +258,7 @@ class TechnicalReportGenerator:
 
             "references": "Generate ONLY a reference list in APA format. Do NOT include any introductory text, discussion, or conclusions. Just provide the properly formatted references cited in the report, with emphasis on PCT literature, along with relevant works on evolutionary algorithms, reinforcement learning, and control systems. Each reference should be on its own line or paragraph, properly formatted in APA style.",
 
-            "abstract": "Write a concise abstract (150-250 words) that summarizes PCT applied to the target environment, followed by a brief comparison with an RL baseline. Include objective, methodology overview, key findings, and main conclusions."
+            "abstract": "Write a concise abstract (maximum 250 words) that summarizes PCT applied to the target environment, followed by a brief comparison with an RL baseline. Include objective, methodology overview, key findings, and main conclusions."
         }
 
         prompt = f"{base_context}\n\n{section_specific_prompts[section]}\n\nNotes for this section:\n{notes}\n\nGenerate the content for this section:"
@@ -344,13 +344,13 @@ class TechnicalReportGenerator:
             
         try:
             prompt = f"""
-            Based on the following technical report sections, write a concise abstract (150-250 words) that summarizes the research study comparing control systems for the {self.environment} environment. The abstract should include:
+            Based on the following technical report sections, write a concise abstract (maximum 250 words) that summarizes the research study comparing control systems for the {self.environment} environment. The abstract should include:
             1. Research objective and problem statement
             2. Methodology overview (PCT vs RL comparison)
             3. Key findings and results
             4. Main conclusions and implications
             
-            Make it a standalone summary that gives readers a complete overview of the work.
+            Make it a standalone summary that gives readers a complete overview of the work. IMPORTANT: Keep the abstract to 250 words or fewer.
             
             Report content:
             {combined_content}
@@ -772,21 +772,21 @@ class TechnicalReportGenerator:
                 # Title page
                 f.write(r"\begin{titlepage}" + "\n")
                 f.write(r"\centering" + "\n")
-                f.write(r"\vspace*{2cm}" + "\n\n")
+                f.write(r"\vspace*{1cm}" + "\n\n")
                 f.write(f"{{\\huge\\bfseries {self._escape_latex(title)}\\par}}\n\n")
                 f.write(r"\vspace{0.5cm}" + "\n")
                 f.write(f"{{\\Large {self._escape_latex(subtitle)}\\par}}\n\n")
                 f.write(r"\vspace{1.5cm}" + "\n\n")
                 
-                # Author info
-                f.write(f"{{\\large\\textbf{{Author:}} {self._escape_latex(author)}\\par}}\n")
-                if org:
-                    f.write(f"{{\\large\\textbf{{Organization:}} {self._escape_latex(org)}\\par}}\n")
+                # Author info - all on one line
+                author_line = f"\\textbf{{Author:}} {self._escape_latex(author)}"
                 if email:
-                    f.write(f"{{\\large\\textbf{{Email:}} \\texttt{{{self._escape_latex(email)}}}\\par}}\n")
-                f.write(r"\vspace{0.5cm}" + "\n")
-                f.write(f"{{\\large\\textbf{{Version:}} {version}\\par}}\n")
-                f.write(f"{{\\large\\textbf{{Date:}} {datetime.now().strftime('%B %d, %Y')}\\par}}\n\n")
+                    author_line += f" \\quad \\textbf{{Email:}} \\texttt{{{self._escape_latex(email)}}}"
+                author_line += f" \\quad \\textbf{{Version:}} {version}"
+                author_line += f" \\quad \\textbf{{Date:}} {datetime.now().strftime('%B %d, %Y')}"
+                f.write(f"{{{author_line}\\par}}\n\n")
+                if org:
+                    f.write(f"{{\\textbf{{Organization:}} {self._escape_latex(org)}\\par}}\n\n")
                 
                 # Abstract on title page
                 abstract_file = self.output_dir / "abstract.txt"
