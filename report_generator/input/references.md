@@ -20,6 +20,9 @@
 
 ### Implementation & Resources
 
+- **Gymnasium. (2026)** Gymnasium Documentation 
+  [https://gymnasium.farama.org/](https://gymnasium.farama.org/)
+
 - **Young, R. (2025)** Lunar Lander PCT v. RL  
   [https://www.youtube.com/watch?v=sxW8pNze1Ro](https://www.youtube.com/watch?v=sxW8pNze1Ro)
 

@@ -13,7 +13,8 @@
 
 ### Environment
 - **Characteristics and challenges**
-- Reference: [Lunar Lander Environment](https://gymnasium.farama.org/environments/box2d/lunar_lander/)
+- Reference: [Lunar Lander Environment](https://gymnasium.farama.org/environments/box2d/lunar_lander/) 
+- Reference: Gymnasium platform  \citep{gym2026} 
 
 ### Related Work
 - Previous comparative studies **limitations**

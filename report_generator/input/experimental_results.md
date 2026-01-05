@@ -4,7 +4,7 @@
 
 ### Computational Comparison
 
-The RL controller implements a high-dimensional mapping between state and action an enormous network, relatively, is necessary as shown in the first image where the PCT controller is barely visible. The PCT network, shown in the second image, which dynamically adjusts action to maintain perceptual inputs is just 6 control units and has significantly fewer weights, by a factor of 10,000.
+The RL controller implements a high-dimensional mapping between state and action a relatively enormous network is necessary as shown in the comparative image where the PCT controller is barely visible. The PCT network, shown in the other image, which dynamically adjusts action to maintain perceptual inputs is just 6 control units and has significantly fewer weights, by a factor of 10,000.
 
 ### Visual Media
 - **Video** \citep{young2025} : Shows random controller, RL (Symphony) controller, and evolved PCT controller
@@ -29,7 +29,7 @@ The RL controller implements a high-dimensional mapping between state and action
 | Failure Rate (count=-100) | 5 | 8 |
 | Neutral Rate (count=0) | 20 | 13 |
 
-Table: Comparative results for RL and PCT. A score of 100 indicates a successful landing, -100 a crash and 0 is incomplete landing at end of run.
+Table: Comparative results for RL and PCT. A score of 100 indicates a successful landing, -100 a crash and 0 is incomplete landing at end of run. The PCT network has significantly fewer weights, by a factor of 10,000.
 
 
 
@@ -40,4 +40,5 @@ Table: Comparative results for RL and PCT. A score of 100 indicates a successful
   - Simphony model - \citep{ishuov2024}
 - Videos
 - Key findings and insights
+- Future work will focus on reproducing these results and further exploring the potential of PCT in other dynamic systems.
 

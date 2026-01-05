@@ -5,8 +5,11 @@
 - **Control systems** are critical for autonomous agents
 - **Traditional control** vs **modern AI approaches**
 - **PCT** offers:
+  - \citep{powers1973} 
   - Biological inspiration
   - Interpretability
+  - Ultra-stability
 - **RL** provides data-driven learning capabilities
+  - \citep{sutton2018}
 - **Research gap**: Direct comparison in standardized environment
 - Specific environment provides consistent evaluation platform
