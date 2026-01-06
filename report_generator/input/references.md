@@ -20,6 +20,9 @@
 
 ### Implementation & Resources
 
+- **Young, R. (2026)** PCT Experimental Results 
+  [https://perceptualrobots.github.io/pct/pctresults.html](https://perceptualrobots.github.io/pct/pctresults.html)
+
 - **Gymnasium. (2026)** Gymnasium Documentation 
   [https://gymnasium.farama.org/](https://gymnasium.farama.org/)
 

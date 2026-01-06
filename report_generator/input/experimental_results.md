@@ -36,7 +36,10 @@ Table: Comparative results for RL and PCT. A score of 100 indicates a successful
 ## Presentation Elements
 - Results summary table
 - **Results reproduction**:
-  - *TODO*: PCT example, link to code
+  - PCT results
+    - The results of this experiment can be run with the code from the pct Python library:
+    - Code: PCTExamples.run_example('testfiles/LunarLander/LunarLander-4905d2.properties', render=True)
+
   - Simphony model - \citep{ishuov2024}
 - Videos
 - Key findings and insights
