@@ -832,7 +832,9 @@ class TechnicalReportGenerator:
                         with open(output_file, 'r', encoding='utf-8') as sf:
                             content = sf.read().strip()
                             if content:
-                                # First convert tables to LaTeX
+                                # First convert code blocks to LaTeX verbatim
+                                content = self._convert_code_blocks_to_latex(content)
+                                # Then convert tables to LaTeX
                                 content = self._convert_tables_to_latex(content)
                                 # Then convert image references to LaTeX figures
                                 content = self._convert_images_to_latex(content)
@@ -879,6 +881,15 @@ class TechnicalReportGenerator:
         if protect_commands:
             # Temporarily replace LaTeX commands with placeholders that won't be escaped
             import re
+            
+            # Protect verbatim environments (multi-line)
+            verbatim_pattern = r'(\\begin\{verbatim\}.*?\\end\{verbatim\})'
+            verbatims = re.findall(verbatim_pattern, text, re.DOTALL)
+            verbatim_placeholders = {}
+            for i, verbatim in enumerate(verbatims):
+                placeholder = f'XXVERBATIMMARKER{i}XX'
+                verbatim_placeholders[placeholder] = verbatim
+                text = text.replace(verbatim, placeholder)
             
             # Protect table environments (multi-line)
             table_pattern = r'(\\begin\{table\}.*?\\end\{table\})'
@@ -949,9 +960,12 @@ class TechnicalReportGenerator:
             # Restore figures
             for placeholder, figure in figure_placeholders.items():
                 text = text.replace(placeholder, figure)
-            # Restore tables last
+            # Restore tables
             for placeholder, table in table_placeholders.items():
                 text = text.replace(placeholder, table)
+            # Restore verbatim last
+            for placeholder, verbatim in verbatim_placeholders.items():
+                text = text.replace(placeholder, verbatim)
         
         return text
     
@@ -1086,6 +1100,35 @@ class TechnicalReportGenerator:
             return latex_code
         
         text = re.sub(image_pattern2, replace_image_with_caption, text, flags=re.MULTILINE)
+        
+        return text
+    
+    def _convert_code_blocks_to_latex(self, text: str) -> str:
+        """Convert markdown code blocks (```) to LaTeX verbatim environment.
+        
+        Converts fenced code blocks like:
+        ```
+        code here
+        ```
+        
+        to:
+        \begin{verbatim}
+        code here
+        \end{verbatim}
+        """
+        import re
+        
+        # Pattern to match fenced code blocks with optional language identifier
+        # Matches ``` or ```language at the start, content, and closing ```
+        code_block_pattern = r'```(?:[a-zA-Z0-9_+-]*)?\n(.*?)\n```'
+        
+        def replace_code_block(match):
+            code_content = match.group(1)
+            # Return verbatim environment
+            return f'\\begin{{verbatim}}\n{code_content}\n\\end{{verbatim}}'
+        
+        # Replace all code blocks
+        text = re.sub(code_block_pattern, replace_code_block, text, flags=re.DOTALL)
         
         return text
     
