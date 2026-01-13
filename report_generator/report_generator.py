@@ -241,6 +241,13 @@ class TechnicalReportGenerator:
         TABLE HANDLING: If the notes contain Markdown tables (with pipes | and dashes), preserve them EXACTLY in your output.
         Do NOT convert tables to prose or replace them with placeholders like [Table would be inserted here].
         Keep the complete table structure with all rows and columns intact.
+        If the notes include table metadata in this format:
+        - **Table**
+          - Caption: Caption text
+          - Label: label_name
+        
+        You MUST include this metadata directly before the table in your output, preserving the exact format.
+        The Caption and Label lines are essential for LaTeX generation and must not be omitted or reformatted.
         """
 
         section_specific_prompts = {
@@ -749,6 +756,26 @@ class TechnicalReportGenerator:
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{natbib}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Configure listings for code blocks
+\lstset{
+    basicstyle=\small\ttfamily,
+    breaklines=true,
+    breakatwhitespace=false,
+    postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+    breakindent=20pt,
+    frame=single,
+    xleftmargin=0.5cm,
+    xrightmargin=0.5cm,
+    backgroundcolor=\color{gray!10},
+    columns=flexible,
+    keepspaces=true,
+    showstringspaces=false,
+    upquote=true,
+    literate={'}{\textquotesingle}1
+}
 
 % Configure hyperlinks
 \hypersetup{
@@ -882,8 +909,8 @@ class TechnicalReportGenerator:
             # Temporarily replace LaTeX commands with placeholders that won't be escaped
             import re
             
-            # Protect verbatim environments (multi-line)
-            verbatim_pattern = r'(\\begin\{verbatim\}.*?\\end\{verbatim\})'
+            # Protect verbatim and lstlisting environments (multi-line)
+            verbatim_pattern = r'(\\begin\{(?:verbatim|lstlisting)\}.*?\\end\{(?:verbatim|lstlisting)\})'
             verbatims = re.findall(verbatim_pattern, text, re.DOTALL)
             verbatim_placeholders = {}
             for i, verbatim in enumerate(verbatims):
@@ -917,6 +944,24 @@ class TechnicalReportGenerator:
                 placeholder = f'XXTEMPMARKER{i}XX'
                 cite_placeholders[placeholder] = cite
                 text = text.replace(cite, placeholder)
+            
+            # Protect references (\ref{})
+            ref_pattern = r'(~?\\ref\{[^}]+\})'
+            refs = re.findall(ref_pattern, text)
+            ref_placeholders = {}
+            for i, ref in enumerate(refs):
+                placeholder = f'XXREFMARKER{i}XX'
+                ref_placeholders[placeholder] = ref
+                text = text.replace(ref, placeholder)
+            
+            # Protect labels (\label{})
+            label_pattern = r'(\\label\{[^}]+\})'
+            labels = re.findall(label_pattern, text)
+            label_placeholders = {}
+            for i, label in enumerate(labels):
+                placeholder = f'XXLABELMARKER{i}XX'
+                label_placeholders[placeholder] = label
+                text = text.replace(label, placeholder)
             
             # Protect math
             math_pattern = r'(\$[^$]+\$)'
@@ -957,6 +1002,12 @@ class TechnicalReportGenerator:
             # Restore \cite{...} commands
             for placeholder, cite in cite_placeholders.items():
                 text = text.replace(placeholder, cite)
+            # Restore \ref{...} commands
+            for placeholder, ref in ref_placeholders.items():
+                text = text.replace(placeholder, ref)
+            # Restore \label{...} commands
+            for placeholder, label in label_placeholders.items():
+                text = text.replace(placeholder, label)
             # Restore figures
             for placeholder, figure in figure_placeholders.items():
                 text = text.replace(placeholder, figure)
@@ -1013,11 +1064,12 @@ class TechnicalReportGenerator:
         # Pattern 1: [Image: path] or [Image: path [width=...] (caption)]
         image_pattern1 = r'\[Image:\s+([^\s\[\(]+)(?:\s+\[([^\]]+)\])?(?:\s+\(([^\)]+)\))?\]'
         
-        # Pattern 2: **Image**: `filename.png` with optional width and caption on next lines
+        # Pattern 2: **Image**: `filename.png` with optional width, caption, and label on next lines
         # Format: - **Image**: `file.png`
         #         - [width=1.0\textwidth]
         #         - Caption: text
-        image_pattern2 = r'-\s+\*\*Image\*\*:\s+`([^`]+)`(?:\s*\n\s*-\s+\[([^\]]+)\])?(?:\s*\n\s*-\s+Caption:\s*([^\n]+))?'
+        #         - Label: `custom_label`
+        image_pattern2 = r'-\s+\*\*Image\*\*:\s+`([^`]+)`(?:\s*\n\s*-\s+\[([^\]]+)\])?(?:\s*\n\s*-\s+Caption:\s*([^\n]+))?(?:\s*\n\s*-\s+Label:\s*`?([^`\n]+)`?)?'
         
         def replace_image(match):
             nonlocal figure_counter
@@ -1075,12 +1127,13 @@ class TechnicalReportGenerator:
         # Replace Pattern 1: [Image: path]
         text = re.sub(image_pattern1, replace_image, text)
         
-        # Replace Pattern 2: **Image**: `path` with optional width and caption support
+        # Replace Pattern 2: **Image**: `path` with optional width, caption, and label support
         def replace_image_with_caption(match):
             nonlocal figure_counter
             image_path = match.group(1).strip()
             width_spec = match.group(2).strip() if match.group(2) else None
             caption = match.group(3).strip() if match.group(3) else None
+            custom_label = match.group(4).strip() if len(match.groups()) > 3 and match.group(4) else None
             
             # Strip quotes and backticks from image path if present
             image_path = image_path.strip('\'"` ')
@@ -1099,9 +1152,12 @@ class TechnicalReportGenerator:
             input_file_path = self.input_dir / image_path
             file_exists = input_file_path.exists()
             
-            # Generate unique label for this figure
-            figure_counter += 1
-            fig_label = f'fig:{os.path.splitext(os.path.basename(image_path))[0]}{figure_counter}'
+            # Use custom label if provided, otherwise generate unique label
+            if custom_label:
+                fig_label = f'fig:{custom_label}'
+            else:
+                figure_counter += 1
+                fig_label = f'fig:{os.path.splitext(os.path.basename(image_path))[0]}{figure_counter}'
             
             # Create figure environment
             latex_code = '\n\\begin{figure}[htbp]\n'
@@ -1135,7 +1191,7 @@ class TechnicalReportGenerator:
         return text
     
     def _convert_code_blocks_to_latex(self, text: str) -> str:
-        """Convert markdown code blocks (```) to LaTeX verbatim environment.
+        """Convert markdown code blocks (```) to LaTeX lstlisting environment.
         
         Converts fenced code blocks like:
         ```
@@ -1143,9 +1199,11 @@ class TechnicalReportGenerator:
         ```
         
         to:
-        \begin{verbatim}
+        \begin{lstlisting}
         code here
-        \end{verbatim}
+        \end{lstlisting}
+        
+        Uses the listings package which supports line wrapping and better formatting.
         """
         import re
         
@@ -1155,8 +1213,8 @@ class TechnicalReportGenerator:
         
         def replace_code_block(match):
             code_content = match.group(1)
-            # Return verbatim environment
-            return f'\\begin{{verbatim}}\n{code_content}\n\\end{{verbatim}}'
+            # Return lstlisting environment with line breaking enabled
+            return f'\\begin{{lstlisting}}\n{code_content}\n\\end{{lstlisting}}'
         
         # Replace all code blocks
         text = re.sub(code_block_pattern, replace_code_block, text, flags=re.DOTALL)
@@ -1171,27 +1229,22 @@ class TechnicalReportGenerator:
         |----------|----------|
         | Cell 1   | Cell 2   |
         
-        Also detects captions in these formats:
-        - Before table: **Table N:** Caption text
-        - Before table: - Caption: Caption text
-        - After table: Table: Caption text
+        Optionally with caption and label before table:
+        **Table:** Caption text
+        **Label:** label_name
+        | table |
         """
         import re
         
-        # Pattern to match optional caption before table + table + optional caption after
-        # Caption before: **Table N:** or - Caption:
-        # Caption after: Table: or Caption:
-        full_table_pattern = r'(?:(?:\*\*Table\s+\d+:\*\*|(?:^|\n)-\s*Caption:)\s*([^\n]+)\n+)?' \
-                            r'(\|[^\n]+\|\n\|[-:\s|]+\|\n(?:\|[^\n]+\|\n?)+)' \
-                            r'(?:\n+(?:Table:|Caption:)\s*([^\n]+))?'
+        # Pattern to match optional caption and label before table
+        # Caption format: **Table:** Caption text
+        # Label format: **Label:** label_name (optional)
+        table_with_metadata_pattern = r'(?:\*\*Table(?:\s+\d+)?:\*\*\s*([^\n]+)\n+)(?:\*\*Label:\*\*\s*([^\n]+)\n+)?(\|[^\n]+\|\n\|[-:\s|]+\|\n(?:\|[^\n]+\|\n?)+)'
         
         def replace_table(match):
-            caption_before = match.group(1)
-            table_text = match.group(2).strip()
-            caption_after = match.group(3)
-            
-            # Use whichever caption exists (prefer before over after)
-            caption = caption_before if caption_before else caption_after
+            caption = match.group(1)
+            label = match.group(2)
+            table_text = match.group(3).strip()
             
             lines = table_text.split('\n')
             
@@ -1213,12 +1266,10 @@ class TechnicalReportGenerator:
                     if len(cells) == num_cols:
                         data_rows.append(cells)
             
-            # Build LaTeX table with better formatting
+            # Build LaTeX table
             latex_code = '\n\\begin{table}[h]\n'
             latex_code += '\\centering\n'
-            latex_code += '\\small\n'  # Use smaller font for better fit
-            # Use p{width} columns for text wrapping instead of c for centered
-            # First column left-aligned, rest centered with wrapping
+            latex_code += '\\small\n'
             col_spec = '|l|' + 'c|' * (num_cols - 1)
             latex_code += f'\\begin{{tabular}}{{{col_spec}}}\n'
             latex_code += '\\hline\n'
@@ -1239,11 +1290,15 @@ class TechnicalReportGenerator:
             if caption:
                 latex_code += f'\\caption{{{caption.strip()}}}\n'
             
+            # Add label if present
+            if label:
+                latex_code += f'\\label{{tab:{label.strip()}}}\n'
+            
             latex_code += '\\end{table}\n'
             
             return latex_code
         
-        text = re.sub(full_table_pattern, replace_table, text, flags=re.MULTILINE)
+        text = re.sub(table_with_metadata_pattern, replace_table, text, flags=re.MULTILINE)
         
         return text
     
