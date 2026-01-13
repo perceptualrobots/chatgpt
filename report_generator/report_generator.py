@@ -1000,10 +1000,15 @@ class TechnicalReportGenerator:
         - [Image path/to/image.png]
         - [Image: path/to/image.png]
         - **Image**: `path/to/image.png`
-        And converts them to LaTeX figure environments.
+        And converts them to LaTeX figure environments with labels and references.
+        Figures are placed at the end of the text with references in the original location.
         """
         import re
         import os
+        
+        # Storage for figures to be added at the end
+        figures = []
+        figure_counter = 0
         
         # Pattern 1: [Image: path] or [Image: path [width=...] (caption)]
         image_pattern1 = r'\[Image:\s+([^\s\[\(]+)(?:\s+\[([^\]]+)\])?(?:\s+\(([^\)]+)\))?\]'
@@ -1015,6 +1020,7 @@ class TechnicalReportGenerator:
         image_pattern2 = r'-\s+\*\*Image\*\*:\s+`([^`]+)`(?:\s*\n\s*-\s+\[([^\]]+)\])?(?:\s*\n\s*-\s+Caption:\s*([^\n]+))?'
         
         def replace_image(match):
+            nonlocal figure_counter
             image_path = match.group(1).strip()
             width_spec = match.group(2).strip() if len(match.groups()) > 1 and match.group(2) else None
             caption = match.group(3).strip() if len(match.groups()) > 2 and match.group(3) else None
@@ -1036,8 +1042,12 @@ class TechnicalReportGenerator:
             input_file_path = self.input_dir / image_path
             file_exists = input_file_path.exists()
             
+            # Generate unique label for this figure
+            figure_counter += 1
+            fig_label = f'fig:{os.path.splitext(os.path.basename(image_path))[0]}{figure_counter}'
+            
             # Create figure environment
-            latex_code = '\n\\begin{figure}[h]\n'
+            latex_code = '\n\\begin{figure}[htbp]\n'
             latex_code += '\\centering\n'
             
             if file_exists:
@@ -1052,15 +1062,22 @@ class TechnicalReportGenerator:
                 latex_code += f'\\caption{{{caption}}}\n'
             else:
                 latex_code += f'\\caption{{Figure from: {os.path.basename(image_path)}}}\n'
+            
+            latex_code += f'\\label{{{fig_label}}}\n'
             latex_code += '\\end{figure}\n'
             
-            return latex_code
+            # Store the figure
+            figures.append(latex_code)
+            
+            # Return a reference to the figure
+            return f'Figure~\\ref{{{fig_label}}}'
         
         # Replace Pattern 1: [Image: path]
         text = re.sub(image_pattern1, replace_image, text)
         
         # Replace Pattern 2: **Image**: `path` with optional width and caption support
         def replace_image_with_caption(match):
+            nonlocal figure_counter
             image_path = match.group(1).strip()
             width_spec = match.group(2).strip() if match.group(2) else None
             caption = match.group(3).strip() if match.group(3) else None
@@ -1082,8 +1099,12 @@ class TechnicalReportGenerator:
             input_file_path = self.input_dir / image_path
             file_exists = input_file_path.exists()
             
+            # Generate unique label for this figure
+            figure_counter += 1
+            fig_label = f'fig:{os.path.splitext(os.path.basename(image_path))[0]}{figure_counter}'
+            
             # Create figure environment
-            latex_code = '\n\\begin{figure}[h]\n'
+            latex_code = '\n\\begin{figure}[htbp]\n'
             latex_code += '\\centering\n'
             
             if file_exists:
@@ -1095,11 +1116,21 @@ class TechnicalReportGenerator:
                 latex_code += f'\\caption{{{caption}}}\n'
             else:
                 latex_code += f'\\caption{{Figure: {os.path.basename(image_path)}}}\n'
+            
+            latex_code += f'\\label{{{fig_label}}}\n'
             latex_code += '\\end{figure}\n'
             
-            return latex_code
+            # Store the figure
+            figures.append(latex_code)
+            
+            # Return a reference to the figure
+            return f'Figure~\\ref{{{fig_label}}}'
         
         text = re.sub(image_pattern2, replace_image_with_caption, text, flags=re.MULTILINE)
+        
+        # Append all figures at the end
+        if figures:
+            text += '\n\n' + '\n'.join(figures)
         
         return text
     
