@@ -5,7 +5,7 @@
 - **Control systems** are critical for autonomous agents
 - **Traditional control** vs **modern AI approaches**
 - **PCT** offers:
-  - \citep{powers1973} 
+  - \cite{powers1973} 
   - Biological inspiration
   - Interpretability
   - Ultra-stability
