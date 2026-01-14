@@ -1581,6 +1581,10 @@ class TechnicalReportGenerator:
             pdf_success = self.generate_pdf()
             success = success and pdf_success
             
+            print(f"\n{'=' * 50}")
+            print(f"Completed: {datetime.now().strftime('%B %d, %Y at %H:%M:%S')}")
+            print(f"{'=' * 50}")
+            
             return success
         else:
             print("No output sections found. Please ensure input files exist and run generation first.")
