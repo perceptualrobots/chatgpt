@@ -752,10 +752,18 @@ class TechnicalReportGenerator:
         report_number = self.get_report_number()
         version = self.load_metadata().get("version", "1.0.0")
         
-        # Generate citation key from author last name and year
+        # Generate citation key from author last name, year, and report number
         current_year = datetime.now().year
         author_last = author.split()[-1].lower() if author else "author"
-        citation_key = f"{author_last}{current_year}"
+        
+        # Include report number in citation key if available
+        if report_number:
+            # Extract alphanumeric parts from report number and make it URL-safe
+            # E.g., "Technical Report 001" -> "tr001"
+            report_key = ''.join(c.lower() for c in report_number if c.isalnum())
+            citation_key = f"{author_last}{current_year}_{report_key}"
+        else:
+            citation_key = f"{author_last}{current_year}"
         
         # Build full title with subtitle
         full_title = title
