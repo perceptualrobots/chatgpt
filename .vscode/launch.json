@@ -4,19 +4,22 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "article chat",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            // "args": ["-f", "G:/My Drive/newideas/PIIS0960982213001401.pdf", "-u", "What is the main thesis of this article?", "-s", "You are an expert academic specializing in summarizing research papers."]
-            // "args": ["-f", "G:/My Drive/newideas/PIIS0960982213001401.pdf", "-u", "how many individual trials were there?"]
-
             "args": ["-f", "G:/My Drive/newideas/1626.full.pdf", "-u", "Here is a document for review.", "-s", "You are an expert in analyzing, reviewing, and summarizing academic documents, specializing in philosophy and psychology with a focus on human behavior and the nature of consciousness. Your goal is to provide clear, insightful, and concise summaries that capture the main thesis, key arguments, counterarguments, and philosophical concepts presented in the text. You should identify the authors reasoning, theoretical frameworks, and the implications of the arguments within the broader academic discourse. Use precise language and maintain a formal, academic tone while delivering comprehensive and nuanced interpretations of complex ideas."]
-
-
-
+        },
+        {
+            "name": "latex report",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": ["--environment", "Lunar Lander", "--latex"]
         },
         {
             "name": "Python Debugger: Current File",

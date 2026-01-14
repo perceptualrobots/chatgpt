@@ -27,9 +27,10 @@ The RL controller implements a high-dimensional mapping between state and action
 
 **Performance comparison **: 100 episodes
 
-Over 100 episodes, the PCT controller achieved a success rate of 79\%, marginally outperforming the RL controller, which had a success rate of 75\%. Despite having significantly fewer parameters — 29 compared to the RL's 335,622 — the PCT controller maintained robust performance metrics, demonstrating its capability to achieve successful landings (100 episodes with a score of 100 indicating success, -100 (failure) a crash, and 0 (neutral) an incomplete landing). The comparative metrics are summarized in the table \ref{results_table}.
+Over 100 episodes, the PCT controller achieved a success rate of 79\%, marginally outperforming the RL controller, which had a success rate of 75\%. Despite having significantly fewer parameters — 29 compared to the RL's 335,622 — the PCT controller maintained robust performance metrics, demonstrating its capability to achieve successful landings (100 episodes with a score of 100 indicating success, -100 (failure) a crash, and 0 (neutral) an incomplete landing). The comparative metrics are summarized in the table \ref{tab:results_table}.
 
-- **Table:** Caption: Comparative results for RL and PCT. A score of 100 indicates a successful landing, -100 a crash and 0 is incomplete landing at end of run. The PCT network has significantly fewer weights, by a factor of 10,000.
+- **Table:** Comparative results for RL and PCT. A score of 100 indicates a successful landing, -100 a crash and 0 is incomplete landing at end of run. The PCT network has significantly fewer weights, by a factor of 10,000.
+  **Label:** results_table
 
   | Metric | RL (Symphony) | PCT |
   |--------|---------------|-----|

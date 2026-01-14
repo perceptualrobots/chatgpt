@@ -34,8 +34,11 @@ class TechnicalReportGenerator:
             load_dotenv()  # This will check current directory and standard locations
             
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.input_dir = Path(input_dir)
-        self.output_dir = Path(output_dir)
+        
+        # Set default directories relative to report_generator folder
+        report_gen_dir = Path(__file__).parent
+        self.input_dir = report_gen_dir / input_dir if not Path(input_dir).is_absolute() else Path(input_dir)
+        self.output_dir = report_gen_dir / output_dir if not Path(output_dir).is_absolute() else Path(output_dir)
         self.metadata_file = self.output_dir / "metadata.json"
         self.environment = environment
         
@@ -1236,25 +1239,58 @@ class TechnicalReportGenerator:
         """
         import re
         
-        # Pattern to match optional caption and label before table
-        # Caption format: **Table:** Caption text
+        print(f"  [Table Converter] First 20 characters: {text[:20]!r}")
+        
+        # Pattern to match optional caption and label before table (with optional leading whitespace on all lines)
+        # Caption format: - **Table:** Caption text (can start with dash and have leading spaces)
         # Label format: **Label:** label_name (optional)
-        table_with_metadata_pattern = r'(?:\*\*Table(?:\s+\d+)?:\*\*\s*([^\n]+)\n+)(?:\*\*Label:\*\*\s*([^\n]+)\n+)?(\|[^\n]+\|\n\|[-:\s|]+\|\n(?:\|[^\n]+\|\n?)+)'
+        # Table lines can have leading whitespace
+        table_with_metadata_pattern = r'(?:-?\s*\*\*Table(?:\s+\d+)?:\*\*\s*([^\n]+)\n+)(?:\s*\*\*Label:\*\*\s*([^\n]+)\n+)?(\s*\|[^\n]+\|\n\s*\|[-:\s|]+\|\n(?:\s*\|[^\n]+\|\n?)+)'
+        
+        # Count tables matching the metadata pattern for diagnostics
+        metadata_matches = re.findall(table_with_metadata_pattern, text, flags=re.MULTILINE)
+        if metadata_matches : print(f"  [Table Converter] Found {len(metadata_matches)} table(s) with caption/label format in text")
+        
+        # Also try simpler pattern - just table with caption (no label required)
+        table_with_caption_only = r'(?:-?\s*\*\*Table(?:\s+\d+)?:\*\*\s*([^\n]+)\n+)(\s*\|[^\n]+\|\n\s*\|[-:\s|]+\|\n(?:\s*\|[^\n]+\|\n?)+)'
+        
+        # Count tables matching caption-only pattern for diagnostics
+        caption_only_matches = re.findall(table_with_caption_only, text, flags=re.MULTILINE)
+        if caption_only_matches: print(f"  [Table Converter] Found {len(caption_only_matches)} table(s) with caption-only format in text")
+        
+        table_count = 0
         
         def replace_table(match):
+            nonlocal table_count
+            table_count += 1
+            
             caption = match.group(1)
-            label = match.group(2)
-            table_text = match.group(3).strip()
+            label = match.group(2) if len(match.groups()) > 2 else None
+            table_text = match.group(3 if len(match.groups()) > 2 else 2).strip()
+            
+            print(f"  [Table Converter] Found table #{table_count}")
+            if caption:
+                print(f"    Caption: {caption[:50]}..." if len(caption) > 50 else f"    Caption: {caption}")
+            else:
+                print(f"    Caption: None")
+            if label:
+                print(f"    Label: {label}")
+            else:
+                print(f"    Label: None")
             
             lines = table_text.split('\n')
             
             if len(lines) < 2:
+                print(f"    WARNING: Invalid table (insufficient lines)")
                 return table_text  # Not a valid table
             
             # Parse header
             header_line = lines[0]
             headers = [cell.strip() for cell in header_line.split('|')[1:-1]]
             num_cols = len(headers)
+            
+            print(f"    Columns: {num_cols} ({', '.join(headers)})")
+            print(f"    Data rows: {len(lines) - 2}")
             
             # Skip separator line (lines[1])
             
@@ -1296,9 +1332,18 @@ class TechnicalReportGenerator:
             
             latex_code += '\\end{table}\n'
             
+            print(f"    Converted to LaTeX table environment")
+            
             return latex_code
         
+        # Try with full metadata pattern first
         text = re.sub(table_with_metadata_pattern, replace_table, text, flags=re.MULTILINE)
+        
+        if table_count == 0:
+            # Try with caption-only pattern
+            text = re.sub(table_with_caption_only, replace_table, text, flags=re.MULTILINE)
+        
+        if table_count : print(f"  [Table Converter] Completed: {table_count} table(s) converted")
         
         return text
     
