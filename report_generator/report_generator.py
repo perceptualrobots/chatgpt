@@ -48,6 +48,8 @@ class TechnicalReportGenerator:
         self.report_title = os.getenv("REPORT_TITLE", "")
         self.report_subtitle = os.getenv("REPORT_SUBTITLE", "")
         self.report_org = os.getenv("REPORT_ORG", "")
+        self.report_number = os.getenv("REPORT_NUMBER", "")
+        self.report_number = os.getenv("REPORT_NUMBER", "")
         
         # Report sections in order (Executive Summary removed)
         self.sections = [
@@ -126,6 +128,10 @@ class TechnicalReportGenerator:
         """Get report subtitle from environment or metadata."""
         return self.report_subtitle or "with Comparative RL Baseline"
         
+    def get_report_number(self) -> str:
+        """Get report number from environment or metadata."""
+        return self.report_number or ""
+        
     def ensure_directories(self):
         """Create input and output directories if they don't exist."""
         self.input_dir.mkdir(exist_ok=True)
@@ -147,12 +153,17 @@ class TechnicalReportGenerator:
                         key = key.strip()
                         value = value.strip()
                         
+                        # Remove markdown bold formatting (**text**)
+                        key = key.replace('**', '')
+                        
                         if key.lower() == "subtitle":
                             self.report_subtitle = value or self.report_subtitle
                         elif key.lower() == "org":
                             self.report_org = value or self.report_org
                         elif key.lower() == "title":
                             self.report_title = value or self.report_title
+                        elif key.lower() == "reportnumber":
+                            self.report_number = value or self.report_number
                             
                 print(f"Title information loaded from {title_file}")
             except Exception as e:
@@ -726,6 +737,63 @@ class TechnicalReportGenerator:
             print(f"Error generating BibTeX: {e}")
             return False
     
+    def generate_report_citation(self, output_filename: str = "report_citation.bib") -> bool:
+        """Generate BibTeX citation entry for this report."""
+        print("Generating report citation...")
+        
+        latex_output_dir = self.output_dir / "latex_output"
+        citation_path = latex_output_dir / output_filename
+        
+        # Get report metadata
+        author = self.get_author_name()
+        title = self.get_report_title()
+        subtitle = self.get_report_subtitle()
+        org = self.get_report_organization()
+        report_number = self.get_report_number()
+        version = self.load_metadata().get("version", "1.0.0")
+        
+        # Generate citation key from author last name and year
+        current_year = datetime.now().year
+        author_last = author.split()[-1].lower() if author else "author"
+        citation_key = f"{author_last}{current_year}"
+        
+        # Build full title with subtitle
+        full_title = title
+        if subtitle:
+            full_title = f"{title}: {subtitle}"
+        
+        # Construct BibTeX entry
+        bibtex_entry = f"""@techreport{{{citation_key},
+  author = {{{author}}},
+  title = {{{full_title}}},"""
+        
+        if org:
+            bibtex_entry += f"\n  institution = {{{org}}},"
+        
+        bibtex_entry += f"\n  year = {{{current_year}}},"
+        
+        if report_number:
+            bibtex_entry += f"\n  number = {{{report_number}}},"
+        
+        bibtex_entry += f"\n  type = {{Technical Report}},"
+        bibtex_entry += f"\n  month = {{{datetime.now().strftime('%B')}}},"
+        bibtex_entry += f"\n  version = {{{version}}}"
+        bibtex_entry += "\n}\n"
+        
+        try:
+            with open(citation_path, 'w', encoding='utf-8') as f:
+                f.write("% BibTeX citation entry for this technical report\n")
+                f.write("% Use this to cite this report in other documents\n\n")
+                f.write(bibtex_entry)
+            
+            print(f"[OK] Report citation generated: {citation_path}")
+            print(f"     Citation key: {citation_key}")
+            return True
+            
+        except Exception as e:
+            print(f"Error generating report citation: {e}")
+            return False
+    
     def generate_latex(self, output_filename: str = "technical_report.tex") -> bool:
         """Generate LaTeX source file from all section files."""
         print("Generating LaTeX report...")
@@ -737,6 +805,7 @@ class TechnicalReportGenerator:
         title = self.get_report_title()
         subtitle = self.get_report_subtitle()
         org = self.get_report_organization()
+        report_number = self.get_report_number()
         
         # Create latex_output directory
         latex_output_dir = self.output_dir / "latex_output"
@@ -803,18 +872,26 @@ class TechnicalReportGenerator:
                 f.write(r"\begin{titlepage}" + "\n")
                 f.write(r"\centering" + "\n")
                 f.write(r"\vspace*{1cm}" + "\n\n")
+                
+                # Add report number if present
+                if report_number:
+                    f.write(f"{{\\large {self._escape_latex(report_number)}\\par}}\n\n")
+                    f.write(r"\vspace{0.3cm}" + "\n\n")
+                
                 f.write(f"{{\\huge\\bfseries {self._escape_latex(title)}\\par}}\n\n")
                 f.write(r"\vspace{0.5cm}" + "\n")
                 f.write(f"{{\\Large {self._escape_latex(subtitle)}\\par}}\n\n")
                 f.write(r"\vspace{1.5cm}" + "\n\n")
                 
-                # Author info - all on one line
+                # Author info - first line: author and email, second line: version and date
                 author_line = f"\\textbf{{Author:}} {self._escape_latex(author)}"
                 if email:
                     author_line += f" \\quad \\textbf{{Email:}} \\texttt{{{self._escape_latex(email)}}}"
-                author_line += f" \\quad \\textbf{{Version:}} {version}"
-                author_line += f" \\quad \\textbf{{Date:}} {datetime.now().strftime('%B %d, %Y')}"
                 f.write(f"{{{author_line}\\par}}\n\n")
+                
+                # Version and date on separate line
+                version_line = f"\\textbf{{Version:}} {version} \\quad \\textbf{{Date:}} {datetime.now().strftime('%B %d, %Y')}"
+                f.write(f"{{{version_line}\\par}}\n\n")
                 if org:
                     f.write(f"{{\\textbf{{Organization:}} {self._escape_latex(org)}\\par}}\n\n")
                 
@@ -886,6 +963,10 @@ class TechnicalReportGenerator:
                 f.write(r"\end{document}" + "\n")
             
             print(f"[OK] LaTeX report generated: {latex_path}")
+            
+            # Generate BibTeX citation for this report
+            self.generate_report_citation()
+            
             return True
             
         except Exception as e:

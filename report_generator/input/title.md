@@ -1,5 +1,6 @@
 # Report Metadata
 
-**SubTitle**: Technical Report 001  
+**ReportNumber**: Technical Report 001  
+**SubTitle**: with Comparative RL Baseline  
 **Org**: Perceptual Robots
 
