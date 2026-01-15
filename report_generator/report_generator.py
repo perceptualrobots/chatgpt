@@ -50,6 +50,7 @@ class TechnicalReportGenerator:
         self.report_org = os.getenv("REPORT_ORG", "")
         self.report_number = os.getenv("REPORT_NUMBER", "")
         self.report_number = os.getenv("REPORT_NUMBER", "")
+        self.report_url = os.getenv("REPORT_URL", "")
         
         # Report sections in order (Executive Summary removed)
         self.sections = [
@@ -132,6 +133,10 @@ class TechnicalReportGenerator:
         """Get report number from environment or metadata."""
         return self.report_number or ""
         
+    def get_report_url(self) -> str:
+        """Get report URL from environment or metadata."""
+        return self.report_url or ""
+        
     def ensure_directories(self):
         """Create input and output directories if they don't exist."""
         self.input_dir.mkdir(exist_ok=True)
@@ -164,6 +169,8 @@ class TechnicalReportGenerator:
                             self.report_title = value or self.report_title
                         elif key.lower() == "reportnumber":
                             self.report_number = value or self.report_number
+                        elif key.lower() == "url":
+                            self.report_url = value or self.report_url
                             
                 print(f"Title information loaded from {title_file}")
             except Exception as e:
@@ -786,6 +793,12 @@ class TechnicalReportGenerator:
         bibtex_entry += f"\n  type = {{Technical Report}},"
         bibtex_entry += f"\n  month = {{{datetime.now().strftime('%B')}}},"
         bibtex_entry += f"\n  version = {{{version}}}"
+        
+        # Add URL if available
+        url = self.get_report_url()
+        if url:
+            bibtex_entry += f",\n  url = {{{url}}}"
+        
         bibtex_entry += "\n}\n"
         
         try:
@@ -966,6 +979,28 @@ class TechnicalReportGenerator:
                         f.write("\n")
                     else:
                         print(f"Warning: Output file {output_file} not found. Skipping {section} in LaTeX.")
+                
+                # Add BibTeX citation section before end of document
+                f.write("\n\\newpage\n")
+                f.write("\\section*{BibTeX Citation}\n\n")
+                f.write("To cite this report in your work, use the following BibTeX entry:\n\n")
+                f.write("\\begin{verbatim}\n")
+                
+                # Read the report_citation.bib file
+                citation_path = latex_output_dir / "report_citation.bib"
+                if citation_path.exists():
+                    with open(citation_path, 'r', encoding='utf-8') as cf:
+                        citation_content = cf.read()
+                        # Remove the comment lines for cleaner display
+                        citation_lines = [line for line in citation_content.splitlines() 
+                                        if not line.strip().startswith('%')]
+                        citation_text = '\n'.join(citation_lines).strip()
+                        f.write(citation_text + "\n")
+                else:
+                    # Generate a placeholder citation if file doesn't exist yet
+                    f.write("% Citation will be generated after LaTeX compilation\n")
+                
+                f.write("\\end{verbatim}\n\n")
                 
                 # End document
                 f.write(r"\end{document}" + "\n")
