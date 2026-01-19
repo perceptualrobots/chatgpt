@@ -15,6 +15,7 @@
 - **Characteristics and challenges**
 - Reference: [Lunar Lander Environment](https://gymnasium.farama.org/environments/box2d/lunar_lander/) 
 - Reference: Gymnasium platform  \citep{gymnasium2026} 
+- Describe environment, including inputs and actions
 
 ### Related Work
 - Previous comparative studies **limitations**
